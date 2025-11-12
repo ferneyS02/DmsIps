@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DmsContayPerezIPS.Domain.Entities;
 using DmsContayPerezIPS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +14,7 @@ using Minio.DataModel.Args;
 
 namespace DmsContayPerezIPS.API.Controllers
 {
-    [Authorize] // requiere token
+    [Authorize] // requiere JWT
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentosController : ControllerBase
@@ -29,15 +31,20 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // GET: api/documentos
-        // Lista documentos con filtros + control por serie según rol
+        // GET: /api/Documentos
+        // Lista/búsqueda con filtros + control por serie
+        // Soporta búsqueda por fecha en:
+        //   - parámetros fromDoc/toDoc
+        //   - detección dentro de 'q' (2025-11-12, 11/2025, "noviembre 2025", etc.)
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> Get(
             [FromQuery] long? serieId,
             [FromQuery] long? subserieId,
             [FromQuery] long? tipoDocId,
-            [FromQuery] string? q)
+            [FromQuery] string? q,
+            [FromQuery] DateTime? fromDoc,
+            [FromQuery] DateTime? toDoc)
         {
             var allowed = AllowedSeries(User);
 
@@ -65,6 +72,14 @@ namespace DmsContayPerezIPS.API.Controllers
             if (tipoDocId.HasValue)
                 query = query.Where(d => d.TipoDocId == tipoDocId.Value);
 
+            // Rango explícito por fecha del documento
+            if (fromDoc.HasValue)
+                query = query.Where(d => d.DocumentDate != null && d.DocumentDate >= fromDoc.Value.Date);
+
+            if (toDoc.HasValue)
+                query = query.Where(d => d.DocumentDate != null && d.DocumentDate < toDoc.Value.Date.AddDays(1));
+
+            // Texto + detección de fecha en 'q'
             if (!string.IsNullOrWhiteSpace(q))
             {
                 var like = $"%{q}%";
@@ -72,6 +87,11 @@ namespace DmsContayPerezIPS.API.Controllers
                     EF.Functions.ILike(d.SearchText, like) ||
                     (d.ExtractedText != null && EF.Functions.ILike(d.ExtractedText, like)) ||
                     EF.Functions.ILike(d.OriginalName, like));
+
+                if (TryParseDateFromQuery(q, out var start, out var end))
+                {
+                    query = query.Where(d => d.DocumentDate != null && d.DocumentDate >= start && d.DocumentDate < end);
+                }
             }
 
             var result = await query
@@ -99,8 +119,8 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // GET: api/documentos/{id}
-        // Detalle por Id con control por serie
+        // GET: /api/Documentos/{id}
+        // Detalle con control por serie
         // ==========================================================
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
@@ -146,8 +166,8 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // POST: api/documentos/upload
-        // Upload (Swagger-friendly): un solo parámetro [FromForm]
+        // POST: /api/Documentos/upload
+        // Upload a MinIO (Swagger-friendly): un solo DTO [FromForm]
         // ==========================================================
         public class UploadForm
         {
@@ -235,8 +255,8 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // GET: api/documentos/{id}/download
-        // Descarga por la API (para archivos pequeños/medianos)
+        // GET: /api/Documentos/{id}/download
+        // Descarga por API (para archivos pequeños/medianos)
         // ==========================================================
         [HttpGet("{id:long}/download")]
         public async Task<IActionResult> Download(long id, CancellationToken ct)
@@ -280,8 +300,8 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // GET: api/documentos/{id}/url?expiresSeconds=600
-        // URL prefirmada de MinIO para descarga directa (recomendado)
+        // GET: /api/Documentos/{id}/url?expiresSeconds=600
+        // URL prefirmada (recomendada para archivos grandes)
         // ==========================================================
         [HttpGet("{id:long}/url")]
         public async Task<IActionResult> GetPresignedUrl(long id, [FromQuery] int expiresSeconds = 600, CancellationToken ct = default)
@@ -321,7 +341,7 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // Helpers locales (evitan depender de clases externas)
+        // Helpers locales (autorización y utilidades)
         // ==========================================================
         private static bool IsAdmin(ClaimsPrincipal user) => user.IsInRole("Admin");
 
@@ -331,7 +351,7 @@ namespace DmsContayPerezIPS.API.Controllers
             var role = user.FindFirstValue(ClaimTypes.Role);
             if (string.IsNullOrWhiteSpace(role)) return Array.Empty<long>();
 
-            // Map de rol -> SerieId (según tu seed)
+            // Map de rol -> SerieId (según tu TRD/seed)
             return role switch
             {
                 "GestClinica" => new long[] { 1 },
@@ -370,6 +390,53 @@ namespace DmsContayPerezIPS.API.Controllers
             {
                 return "file.bin";
             }
+        }
+
+        // Detecta fechas en 'q' (día exacto o mes/año)
+        private static bool TryParseDateFromQuery(string q, out DateTime start, out DateTime end)
+        {
+            q = (q ?? "").Trim().ToLowerInvariant();
+            var es = new CultureInfo("es-CO");
+
+            // Día exacto (varios formatos)
+            string[] exacts = { "yyyy-MM-dd", "dd/MM/yyyy", "dd-MM-yyyy", "MM/dd/yyyy" };
+            if (DateTime.TryParseExact(q, exacts, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dExact) ||
+                DateTime.TryParse(q, es, DateTimeStyles.None, out dExact))
+            {
+                start = dExact.Date;
+                end = start.AddDays(1);
+                return true;
+            }
+
+            // Año-mes: 2025-11 o 11/2025
+            var ym = Regex.Match(q, @"^(?<y>\d{4})[-/](?<m>\d{1,2})$|^(?<m2>\d{1,2})[-/](?<y2>\d{4})$");
+            if (ym.Success)
+            {
+                int y = ym.Groups["y"].Success ? int.Parse(ym.Groups["y"].Value) : int.Parse(ym.Groups["y2"].Value);
+                int m = ym.Groups["m"].Success ? int.Parse(ym.Groups["m"].Value) : int.Parse(ym.Groups["m2"].Value);
+                start = new DateTime(y, m, 1);
+                end = start.AddMonths(1);
+                return true;
+            }
+
+            // Mes en español + año: "noviembre 2025"
+            var mregex = Regex.Match(q, @"^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(\d{4})$");
+            if (mregex.Success)
+            {
+                var name = mregex.Groups[1].Value;
+                var year = int.Parse(mregex.Groups[2].Value);
+
+                string[] meses = { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
+                int month = Array.IndexOf(meses, name) + 1;
+                if (month <= 0 && name == "setiembre") month = 9;
+
+                start = new DateTime(year, month, 1);
+                end = start.AddMonths(1);
+                return true;
+            }
+
+            start = end = default;
+            return false;
         }
     }
 }

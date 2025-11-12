@@ -165,6 +165,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "fromDoc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDoc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
