@@ -191,11 +191,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
+      "projectUniqueName": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
       "projectName": "DmsContayPerezIPS.Domain",
-      "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
+      "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
       "packagesPath": "C:\\Users\\Ferney\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\obj\\",
+      "outputPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

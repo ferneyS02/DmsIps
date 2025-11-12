@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "c49W/avbS+E=",
+  "dgSpecHash": "Sl/vQ63gssM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
+  "projectFilePath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Ferney\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\Ferney\\.nuget\\packages\\communitytoolkit.highperformance\\8.4.0\\communitytoolkit.highperformance.8.4.0.nupkg.sha512",

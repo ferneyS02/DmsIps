@@ -68,7 +68,6 @@ C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\n
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\System.IO.Hashing.dll
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\System.IO.Packaging.dll
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\System.Reactive.dll
-C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\System.Text.Json.dll
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\UglyToad.PdfPig.dll
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\UglyToad.PdfPig.Core.dll
 C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.API\bin\Debug\net9.0\UglyToad.PdfPig.Fonts.dll

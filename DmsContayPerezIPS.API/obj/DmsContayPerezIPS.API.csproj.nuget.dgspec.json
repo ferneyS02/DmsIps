@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj": {}
+    "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj": {
+    "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
+        "projectUniqueName": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
         "projectName": "DmsContayPerezIPS.API",
-        "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
+        "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
         "packagesPath": "C:\\Users\\Ferney\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.API\\obj\\",
+        "outputPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -31,11 +31,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj": {
-                "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj"
+              "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj": {
+                "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj"
               },
-              "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj"
+              "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj"
               }
             }
           }
@@ -118,14 +118,14 @@
         }
       }
     },
-    "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj": {
+    "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj",
+        "projectUniqueName": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj",
         "projectName": "DmsContayPerezIPS.Application",
-        "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj",
+        "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\DmsContayPerezIPS.Application.csproj",
         "packagesPath": "C:\\Users\\Ferney\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Application\\obj\\",
+        "outputPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -145,8 +145,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
-                "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj"
+              "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
+                "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj"
               }
             }
           }
@@ -186,14 +186,14 @@
         }
       }
     },
-    "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
+    "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
         "projectName": "DmsContayPerezIPS.Domain",
-        "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
+        "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj",
         "packagesPath": "C:\\Users\\Ferney\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\obj\\",
+        "outputPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -256,14 +256,14 @@
         }
       }
     },
-    "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj": {
+    "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj",
         "projectName": "DmsContayPerezIPS.Infrastructure",
-        "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj",
+        "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\Ferney\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Infrastructure\\obj\\",
+        "outputPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -283,8 +283,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
-                "projectPath": "C:\\Users\\Ferney\\Documents\\dms 1\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj"
+              "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj": {
+                "projectPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Domain\\DmsContayPerezIPS.Domain.csproj"
               }
             }
           }
