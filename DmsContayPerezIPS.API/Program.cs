@@ -1,28 +1,36 @@
-using DmsContayPerezIPS.API.Services;               // ITextExtractor / PdfDocxTextExtractor
+﻿using DmsContayPerezIPS.API.Services;               // ITextExtractor / PdfDocxTextExtractor
 using DmsContayPerezIPS.Infrastructure.Persistence;
 using DmsContayPerezIPS.Infrastructure.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;                    // <- necesario para IFormFile en MapType
+using Microsoft.AspNetCore.Http;                    // Para IFormFile en Swagger MapType
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Minio;
 using Minio.DataModel.Args;
+using System.IdentityModel.Tokens.Jwt;              // 👈 añadido para RoleClaimType
+using System.Security.Claims;                       // 👈 añadido para RoleClaimType
 using System.Text;
 
-// Opcional: cargar variables desde .env si existe
+// ====== Opcional: cargar variables desde .env si existe ======
 try { DotNetEnv.Env.Load(); } catch { /* ignore */ }
 
-// Opcional: compatibilidad Npgsql para DateTime
+// ====== Opcional: compatibilidad Npgsql para DateTime ======
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ===== PostgreSQL =====
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseNpgsql(cs);
+});
 
-// ===== MinIO ===== (usar IMinioClient en vez de MinioClient)
+// ===== Servicios de aplicación (ej. extractor de texto) =====
+builder.Services.AddSingleton<ITextExtractor, PdfDocxTextExtractor>();
+
+// ===== MinIO =====
 builder.Services.AddSingleton<IMinioClient>(sp =>
 {
     var endpoint = builder.Configuration["MinIO:Endpoint"] ?? "localhost:9000";
@@ -32,13 +40,61 @@ builder.Services.AddSingleton<IMinioClient>(sp =>
     return new MinioClient()
         .WithEndpoint(endpoint)
         .WithCredentials(accessKey, secretKey)
-        // .WithSSL() // habil�talo si usas https en MinIO
+        // .WithSSL() // habilítalo si usas https en MinIO
         .Build();
+});
+
+// ===== Controllers =====
+builder.Services.AddControllers();
+
+// ===== Swagger =====
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    // Soporte para IFormFile
+    c.MapType<IFormFile>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Format = "binary"
+    });
+
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "DmsContayPerezIPS API",
+        Version = "v1"
+    });
+
+    // Autenticación Bearer en Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Bearer. Ej: 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // ===== JWT Authentication =====
 var jwtKey = builder.Configuration["JWT:Key"]
              ?? "EstaEsUnaClaveJWTDeAlMenos32CaracteresSuperSegura!!123";
+
+// 👇 Evitar remapeo de claims para que ClaimTypes.Role llegue intacto
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -51,58 +107,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["JWT:Issuer"],
             ValidAudience = builder.Configuration["JWT:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+
+            // 👇 Claves para que [Authorize(Roles="...")] funcione sí o sí
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name
         };
     });
 
-// ===== Controllers + Swagger =====
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
-builder.Services.AddSwaggerGen(c =>
+// ===== Authorization (políticas por serie; Admin entra en todas) =====
+builder.Services.AddAuthorization(options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "DmsContayPerezIPS.API",
-        Version = "v1"
-    });
-
-    // Seguridad JWT en Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Escribe: Bearer {tu_token}"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-
-    // ? Arreglo para endpoints con IFormFile en multipart/form-data
-    c.MapType<IFormFile>(() => new OpenApiSchema
-    {
-        Type = "string",
-        Format = "binary"
-    });
+    options.AddPolicy("Serie_GestClinica", p => p.RequireRole("Admin", "GestClinica"));
+    options.AddPolicy("Serie_GestiAdmin", p => p.RequireRole("Admin", "GestiAdmin"));
+    options.AddPolicy("Serie_GestFinYCon", p => p.RequireRole("Admin", "GestFinYCon"));
+    options.AddPolicy("Serie_GestJurid", p => p.RequireRole("Admin", "GestJurid"));
+    options.AddPolicy("Serie_GestCalidad", p => p.RequireRole("Admin", "GestCalidad"));
+    options.AddPolicy("Serie_SGSST", p => p.RequireRole("Admin", "SGSST"));
+    options.AddPolicy("Serie_AdminEquBiomed", p => p.RequireRole("Admin", "AdminEquBiomed"));
 });
-
-// ===== Extractor de texto (PDF/DOCX) =====
-builder.Services.AddScoped<ITextExtractor, PdfDocxTextExtractor>();
 
 var app = builder.Build();
 
@@ -119,23 +142,26 @@ using (var scope = app.Services.CreateScope())
         if (!exists)
         {
             await minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket));
-            Console.WriteLine($"Bucket '{bucket}' creado en MinIO.");
-        }
-        else
-        {
-            Console.WriteLine($"Bucket '{bucket}' ya existe en MinIO.");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error verificando/creando bucket en MinIO: {ex.Message}");
+        Console.WriteLine($"[MinIO] Error al verificar/crear bucket '{bucket}': {ex.Message}");
+        // No arrojamos excepción para no bloquear el arranque si MinIO no está disponible aún
     }
 
-    // Migraciones
-    await db.Database.MigrateAsync();
+    try
+    {
+        await db.Database.MigrateAsync();
 
-    // Seeding (roles, admin, etc.)
-    await SeederService.SeedAsync(db, minio, bucket);
+        // Seeding de TRD/tipos si corresponde (mantén tu lógica actual de seed)
+        // Nota: Seeder es parte de tu solución (Infrastructure.Seed)
+        await Seeder.RunAsync(db);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[EF] Error en migraciones/seeding: {ex.Message}");
+    }
 }
 
 // ===== Middlewares =====
@@ -146,6 +172,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

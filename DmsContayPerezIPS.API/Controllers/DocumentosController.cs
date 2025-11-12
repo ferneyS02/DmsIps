@@ -1,257 +1,299 @@
-﻿using System.Text.Json;
-using DmsContayPerezIPS.Domain.Entities;
+﻿using System.Security.Claims;
+using System.Text.Json;
+using DmsContayPerezIPS.API.Authorization;        // ← AllowedSeries() / IsAdmin()
 using DmsContayPerezIPS.Infrastructure.Persistence;
-using DmsContayPerezIPS.API.Services; // ITextExtractor + SpanishDateParser (si lo tienes aquí)
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;  // EF.Functions
+using Microsoft.EntityFrameworkCore;
 using Minio;
 using Minio.DataModel.Args;
 
 namespace DmsContayPerezIPS.API.Controllers
 {
+    [Authorize] // requiere token
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentosController : ControllerBase
     {
         private readonly AppDbContext _db;
         private readonly IMinioClient _minio;
-        private readonly string _bucket;
-        private readonly ITextExtractor _textExtractor;
+        private readonly IConfiguration _config;
 
-        public DocumentosController(
-            AppDbContext db,
-            IMinioClient minio,
-            IConfiguration config,
-            ITextExtractor textExtractor)
+        public DocumentosController(AppDbContext db, IMinioClient minio, IConfiguration config)
         {
             _db = db;
             _minio = minio;
-            _bucket = config["MinIO:Bucket"] ?? "dms";
-            _textExtractor = textExtractor;
+            _config = config;
         }
 
-        // ==========================================================
-        // 🔐 Subida de documentos (firma compatible con Swagger)
-        // ==========================================================
-        [HttpPost("upload")]
-        [Authorize]
-        [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Upload(
-            IFormFile file,                // sin [FromForm] para evitar el bug de Swashbuckle
-            [FromForm] long tipoDocId,
-            [FromForm] string? documentDate = null)
+        /// <summary>
+        /// Lista documentos visibles según el rol (Admin ve todo).
+        /// Filtros opcionales: serieId, subserieId, tipoDocId, q (texto).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Get(
+            [FromQuery] long? serieId = null,
+            [FromQuery] long? subserieId = null,
+            [FromQuery] long? tipoDocId = null,
+            [FromQuery] string? q = null)
         {
-            if (file == null || file.Length == 0)
-                return BadRequest("Archivo inválido");
+            var allowed = User.AllowedSeries();
 
-            if (tipoDocId <= 0)
-                return BadRequest("tipoDocId inválido.");
+            var query = _db.Documents
+                .AsNoTracking()
+                .Include(d => d.TipoDoc!)
+                    .ThenInclude(td => td.Subserie!)
+                        .ThenInclude(s => s.Serie)
+                .Where(d => !d.IsDeleted)
+                .AsQueryable();
 
-            // Validar que el TipoDocumental exista
-            var tipoDoc = await _db.TiposDocumentales.FindAsync(tipoDocId);
-            if (tipoDoc == null)
-                return BadRequest("El tipo documental no existe");
+            // Filtro por serie según rol (si no es Admin)
+            if (!User.IsAdmin())
+                query = query.Where(d => d.TipoDoc != null &&
+                                         d.TipoDoc.Subserie != null &&
+                                         allowed.Contains(d.TipoDoc.Subserie.SerieId));
 
-            // Verificar/crear bucket en MinIO
-            bool bucketExists = await _minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(_bucket));
-            if (!bucketExists)
-                await _minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(_bucket));
+            // Filtros opcionales
+            if (serieId.HasValue)
+                query = query.Where(d => d.TipoDoc!.Subserie!.SerieId == serieId.Value);
 
-            var objectName = $"{Guid.NewGuid()}_{file.FileName}";
-
-            // Subir a MinIO
-            using (var stream = file.OpenReadStream())
-            {
-                var contentType = string.IsNullOrWhiteSpace(file.ContentType)
-                    ? "application/octet-stream"
-                    : file.ContentType;
-
-                await _minio.PutObjectAsync(new PutObjectArgs()
-                    .WithBucket(_bucket)
-                    .WithObject(objectName)
-                    .WithStreamData(stream)
-                    .WithObjectSize(file.Length)
-                    .WithContentType(contentType));
-            }
-
-            // ✅ Parseo y normalización de fechas
-            DateTime? parsedDocDate = null;
-            if (!string.IsNullOrWhiteSpace(documentDate) &&
-                SpanishDateParser.TryParse(documentDate, out var parsed))
-            {
-                parsedDocDate = DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified);
-            }
-
-            var createdAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
-
-            // ✅ EXTRAER TEXTO PARA FTS (PDF/DOCX)
-            var extractedText = await _textExtractor.ExtractAsync(file, HttpContext.RequestAborted);
-            var safeSearchText = string.IsNullOrWhiteSpace(extractedText) ? string.Empty : extractedText;
-
-            // Crear documento
-            var doc = new Document
-            {
-                OriginalName = file.FileName,
-                ObjectName = objectName,
-                ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
-                SizeBytes = file.Length,
-                CurrentVersion = 1,
-                CreatedAt = createdAt,
-                DocumentDate = parsedDocDate,
-                TipoDocId = tipoDocId,
-                SearchText = safeSearchText, // 👈 clave para FTS (no null)
-                MetadataJson = JsonSerializer.Serialize(new
-                {
-                    DocumentDate = parsedDocDate,
-                    UploadedBy = User.Identity?.Name ?? "anon"
-                })
-            };
-
-            _db.Documents.Add(doc);
-            await _db.SaveChangesAsync();
-
-            return Ok(new { message = "Archivo subido", docId = doc.Id, objectName = doc.ObjectName });
-        }
-
-        // ==========================================================
-        // 🔐 Listado simple
-        // ==========================================================
-        [HttpGet("list")]
-        [Authorize]
-        public IActionResult ListDocuments()
-        {
-            var docs = _db.Documents.Select(d => new
-            {
-                d.Id,
-                d.OriginalName,
-                d.ContentType,
-                d.SizeBytes,
-                d.CreatedAt,
-                d.DocumentDate
-            });
-
-            return Ok(docs);
-        }
-
-        // ==========================================================
-        // 🔐 Descarga de documento
-        // ==========================================================
-        [HttpGet("download/{id}")]
-        [Authorize]
-        public async Task<IActionResult> Download(long id)
-        {
-            var doc = _db.Documents.FirstOrDefault(d => d.Id == id);
-            if (doc == null) return NotFound("Documento no encontrado");
-
-            var ms = new MemoryStream();
-
-            await _minio.GetObjectAsync(new GetObjectArgs()
-                .WithBucket(_bucket)
-                .WithObject(doc.ObjectName)
-                .WithCallbackStream(stream => stream.CopyTo(ms)));
-
-            ms.Position = 0;
-            return File(ms, doc.ContentType, doc.OriginalName);
-        }
-
-        // ==========================================================
-        // 🔐 Búsqueda avanzada (por metadatos/TRD)
-        // ==========================================================
-        [HttpGet("search")]
-        [Authorize]
-        public IActionResult Search(
-            string? name,
-            DateTime? fromUpload,
-            DateTime? toUpload,
-            string? fromDoc,
-            string? toDoc,
-            long? serieId,
-            long? subserieId,
-            long? tipoDocId,
-            string? metadata)
-        {
-            var query = _db.Documents.AsQueryable();
-
-            // ✅ case-insensitive nativo en PostgreSQL (evita ToLower/ToLowerInvariant)
-            if (!string.IsNullOrWhiteSpace(name))
-                query = query.Where(d => EF.Functions.ILike(d.OriginalName ?? "", $"%{name}%"));
-
-            if (fromUpload.HasValue)
-                query = query.Where(d => d.CreatedAt >= fromUpload.Value);
-
-            if (toUpload.HasValue)
-                query = query.Where(d => d.CreatedAt <= toUpload.Value);
-
-            if (!string.IsNullOrWhiteSpace(fromDoc) && SpanishDateParser.TryParse(fromDoc, out var fdoc))
-                query = query.Where(d => d.DocumentDate >= DateTime.SpecifyKind(fdoc, DateTimeKind.Unspecified));
-
-            if (!string.IsNullOrWhiteSpace(toDoc) && SpanishDateParser.TryParse(toDoc, out var tdoc))
-                query = query.Where(d => d.DocumentDate <= DateTime.SpecifyKind(tdoc, DateTimeKind.Unspecified));
+            if (subserieId.HasValue)
+                query = query.Where(d => d.TipoDoc!.SubserieId == subserieId.Value);
 
             if (tipoDocId.HasValue)
                 query = query.Where(d => d.TipoDocId == tipoDocId.Value);
-            else if (subserieId.HasValue)
-                query = query.Where(d => d.TipoDocumental != null && d.TipoDocumental.SubserieId == subserieId.Value);
-            else if (serieId.HasValue)
-                query = query.Where(d => d.TipoDocumental != null &&
-                                         d.TipoDocumental.Subserie != null &&
-                                         d.TipoDocumental.Subserie.SerieId == serieId.Value);
 
-            if (!string.IsNullOrWhiteSpace(metadata))
-                query = query.Where(d => EF.Functions.ILike(d.MetadataJson ?? "", $"%{metadata}%"));
-
-            var results = query.Select(d => new
+            if (!string.IsNullOrWhiteSpace(q))
             {
-                d.Id,
-                d.OriginalName,
-                d.ContentType,
-                d.SizeBytes,
-                d.CreatedAt,
-                d.DocumentDate,
-                Tipo = d.TipoDocumental == null ? null : d.TipoDocumental.Nombre,
-                Subserie = d.TipoDocumental != null && d.TipoDocumental.Subserie != null
-                    ? d.TipoDocumental.Subserie.Nombre
-                    : null,
-                Serie = d.TipoDocumental != null && d.TipoDocumental.Subserie != null &&
-                        d.TipoDocumental.Subserie.Serie != null
-                    ? d.TipoDocumental.Subserie.Serie.Nombre
-                    : null,
-                d.MetadataJson
-            }).ToList();
+                q = q.Trim();
+                // Búsqueda simple por texto (si ya tienes full-text, puedes cambiar aquí)
+                query = query.Where(d =>
+                    (d.SearchText != null && d.SearchText.ToLower().Contains(q.ToLower())) ||
+                    d.OriginalName.ToLower().Contains(q.ToLower()));
+            }
 
-            return Ok(results);
-        }
-
-        // ==========================================================
-        // 🔐 Full-Text Search (tsvector español + índice GIN)
-        // ==========================================================
-        [HttpGet("fulltext")]
-        [Authorize]
-        public async Task<IActionResult> FullTextSearch([FromQuery] string q)
-        {
-            if (string.IsNullOrWhiteSpace(q))
-                return BadRequest("Ingrese una consulta (q).");
-
-            var results = await _db.Documents
-                .Where(d => d.SearchVector != null &&
-                            d.SearchVector.Matches(EF.Functions.PlainToTsQuery("spanish", q)))
+            var result = await query
+                .OrderByDescending(d => d.Id)
                 .Select(d => new
                 {
                     d.Id,
                     d.OriginalName,
+                    d.ObjectName,
                     d.ContentType,
                     d.SizeBytes,
-                    d.CreatedAt,
-                    d.DocumentDate,
-                    Snippet = !string.IsNullOrEmpty(d.SearchText) && d.SearchText.Length > 240
-                        ? d.SearchText.Substring(0, 240) + "..."
-                        : d.SearchText
+                    d.TipoDocId,
+                    SubserieId = d.TipoDoc!.SubserieId,
+                    SerieId = d.TipoDoc!.Subserie!.SerieId,
+                    Serie = d.TipoDoc!.Subserie!.Serie!.Nombre,
+                    d.CurrentVersion,
+                    d.CreatedAt
                 })
                 .ToListAsync();
 
-            return Ok(results);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene un documento por Id validando acceso por serie según rol.
+        /// </summary>
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetById(long id)
+        {
+            var allowed = User.AllowedSeries();
+
+            var d = await _db.Documents
+                .AsNoTracking()
+                .Include(x => x.TipoDoc!)
+                    .ThenInclude(td => td.Subserie!)
+                        .ThenInclude(s => s.Serie)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+            if (d is null) return NotFound();
+
+            if (!User.IsAdmin())
+            {
+                var serieId = d.TipoDoc?.Subserie?.SerieId;
+                if (serieId == null || !allowed.Contains(serieId.Value))
+                    return Forbid(); // 403
+            }
+
+            return Ok(new
+            {
+                d.Id,
+                d.OriginalName,
+                d.ObjectName,
+                d.ContentType,
+                d.SizeBytes,
+                d.TipoDocId,
+                SubserieId = d.TipoDoc!.SubserieId,
+                SerieId = d.TipoDoc!.Subserie!.SerieId,
+                Serie = d.TipoDoc!.Subserie!.Serie!.Nombre,
+                d.CurrentVersion,
+                d.MetadataJson,
+                d.ExtractedText,
+                d.CreatedAt,
+                d.UpdatedAt
+            });
+        }
+
+        public class UploadRequest
+        {
+            public long TipoDocId { get; set; }
+            public long? FolderId { get; set; }
+            public DateTime? DocumentDate { get; set; }
+            public string? MetadataJson { get; set; } // opcional
+        }
+
+        /// <summary>
+        /// Sube un documento y crea versión 1. Valida acceso por serie según rol.
+        /// </summary>
+        [HttpPost("upload")]
+        [RequestSizeLimit(long.MaxValue)]
+        public async Task<IActionResult> Upload([FromForm] UploadRequest req, IFormFile file, CancellationToken ct)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Archivo requerido.");
+
+            // Validar que el TipoDoc existe y pertenece a una serie accesible
+            var tipoDoc = await _db.TiposDocumentales
+                .Include(t => t.Subserie!)
+                .FirstOrDefaultAsync(t => t.Id == req.TipoDocId, ct);
+
+            if (tipoDoc is null)
+                return BadRequest("Tipo documental no existe.");
+
+            var allowed = User.AllowedSeries();
+            if (!User.IsAdmin() && !allowed.Contains(tipoDoc.Subserie!.SerieId))
+                return Forbid(); // 403
+
+            // Subir a MinIO
+            var bucket = _config["MinIO:Bucket"] ?? "dms";
+            var objectName = BuildObjectName(file.FileName, req.TipoDocId);
+
+            // Asegurar bucket
+            bool exists = await _minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(bucket), ct);
+            if (!exists)
+                await _minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket), ct);
+
+            await using (var stream = file.OpenReadStream())
+            {
+                var put = new PutObjectArgs()
+                    .WithBucket(bucket)
+                    .WithObject(objectName)
+                    .WithStreamData(stream)
+                    .WithObjectSize(file.Length)
+                    .WithContentType(file.ContentType ?? "application/octet-stream");
+
+                await _minio.PutObjectAsync(put, ct);
+            }
+
+            // Crear registro en BD
+            var nowUtc = DateTime.UtcNow;
+
+            // (Opcional) Id de usuario si lo pones en el token:
+            long? userId = null;
+            var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (long.TryParse(sub, out var parsed)) userId = parsed;
+
+            var doc = new DmsContayPerezIPS.Domain.Entities.Document
+            {
+                OriginalName = file.FileName,
+                ObjectName = objectName,
+                ContentType = file.ContentType ?? "application/octet-stream",
+                SizeBytes = file.Length,
+                FolderId = req.FolderId,
+                TipoDocId = req.TipoDocId,
+                CurrentVersion = 1,
+                MetadataJson = string.IsNullOrWhiteSpace(req.MetadataJson) ? null : req.MetadataJson,
+                ExtractedText = null, // si luego extraes, actualiza
+                IsDeleted = false,
+                CreatedBy = userId,
+                CreatedAt = nowUtc,
+                UpdatedBy = null,
+                UpdatedAt = null,
+                DocumentDate = req.DocumentDate,
+                // Simple: usar original + metadata como base de búsqueda
+                SearchText = BuildSearchText(file.FileName, req.MetadataJson)
+            };
+
+            _db.Documents.Add(doc);
+            await _db.SaveChangesAsync(ct);
+
+            // Crear versión 1
+            _db.DocumentVersions.Add(new DmsContayPerezIPS.Domain.Entities.DocumentVersion
+            {
+                DocumentId = doc.Id,
+                VersionNumber = 1,
+                ObjectName = objectName,
+                UploadedBy = userId,
+                UploadedAt = nowUtc
+            });
+
+            await _db.SaveChangesAsync(ct);
+
+            return Ok(new
+            {
+                message = "Documento subido.",
+                doc.Id,
+                doc.OriginalName,
+                doc.ObjectName,
+                doc.TipoDocId
+            });
+        }
+
+        /// <summary>
+        /// Elimina lógico (IsDeleted=true) validando acceso por serie.
+        /// </summary>
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> Delete(long id, CancellationToken ct)
+        {
+            var allowed = User.AllowedSeries();
+
+            var d = await _db.Documents
+                .Include(x => x.TipoDoc!)
+                    .ThenInclude(td => td.Subserie)
+                .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            if (d is null) return NotFound();
+
+            if (!User.IsAdmin() &&
+                (d.TipoDoc?.Subserie == null || !allowed.Contains(d.TipoDoc.Subserie.SerieId)))
+                return Forbid(); // 403
+
+            if (d.IsDeleted) return NoContent();
+
+            d.IsDeleted = true;
+            d.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            return NoContent();
+        }
+
+        // ----------------- helpers -----------------
+
+        private static string BuildObjectName(string originalFileName, long tipoDocId)
+        {
+            var safeName = Path.GetFileName(originalFileName);
+            var now = DateTime.UtcNow;
+            var guid = Guid.NewGuid().ToString("N");
+            return $"docs/{now:yyyy}/{now:MM}/{tipoDocId}/{guid}_{safeName}";
+        }
+
+        private static string? BuildSearchText(string originalName, string? metadataJson)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(metadataJson))
+                    return originalName;
+
+                using var doc = JsonDocument.Parse(metadataJson);
+                var flat = string.Join(" ", doc.RootElement.EnumerateObject().Select(p => $"{p.Name} {p.Value.ToString()}"));
+                return $"{originalName} {flat}";
+            }
+            catch
+            {
+                return originalName;
+            }
         }
     }
 }

@@ -1,12 +1,14 @@
 ﻿using DmsContayPerezIPS.Infrastructure.Persistence;
+using DmsContayPerezIPS.API.Authorization; // ← AllowedSeries() / IsAdmin()
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DmsContayPerezIPS.API.Controllers
 {
+    [Authorize] // requiere token
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/trd")]
     public class TRDController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -16,96 +18,120 @@ namespace DmsContayPerezIPS.API.Controllers
             _db = db;
         }
 
-        // 🔹 Devuelve todas las series con sus subseries y tipos documentales
+        /// <summary>
+        /// Lista Series visibles según el rol (Admin ve todo).
+        /// </summary>
         [HttpGet("series")]
-        // [Authorize] // 👉 Descomenta si quieres requerir token JWT
         public async Task<IActionResult> GetSeries()
         {
-            var series = await _db.Series
-                .Include(s => s.Subseries!)
-                    .ThenInclude(ss => ss.TiposDocumentales!)
+            var allowed = User.AllowedSeries();
+            var q = _db.Series.AsNoTracking().AsQueryable();
+
+            if (!User.IsAdmin())
+                q = q.Where(s => allowed.Contains(s.Id));
+
+            var series = await q
+                .OrderBy(s => s.Id)
                 .Select(s => new
                 {
                     s.Id,
-                    s.Nombre,
-                    Subseries = s.Subseries!.Select(ss => new
-                    {
-                        ss.Id,
-                        ss.Nombre,
-                        ss.RetencionGestion,
-                        ss.RetencionCentral,
-                        ss.DisposicionFinal,
-                        Tipos = ss.TiposDocumentales!.Select(t => new
-                        {
-                            t.Id,
-                            t.Nombre,
-                            t.DisposicionFinal
-                        })
-                    })
+                    s.Nombre
                 })
                 .ToListAsync();
 
             return Ok(series);
         }
 
-        // 🔹 Devuelve una serie específica por Id con sus subseries y tipos
+        /// <summary>
+        /// Obtiene una Serie por Id (valida acceso por rol).
+        /// </summary>
         [HttpGet("series/{id:long}")]
         public async Task<IActionResult> GetSerieById(long id)
         {
+            var allowed = User.AllowedSeries();
+
             var serie = await _db.Series
-                .Include(s => s.Subseries!)
-                    .ThenInclude(ss => ss.TiposDocumentales!)
-                .Where(s => s.Id == id)
-                .Select(s => new
-                {
-                    s.Id,
-                    s.Nombre,
-                    Subseries = s.Subseries!.Select(ss => new
-                    {
-                        ss.Id,
-                        ss.Nombre,
-                        ss.RetencionGestion,
-                        ss.RetencionCentral,
-                        ss.DisposicionFinal,
-                        Tipos = ss.TiposDocumentales!.Select(t => new
-                        {
-                            t.Id,
-                            t.Nombre,
-                            t.DisposicionFinal
-                        })
-                    })
-                })
-                .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == id);
 
-            if (serie == null)
-                return NotFound(new { message = $"No existe la serie con Id={id}" });
+            if (serie is null)
+                return NotFound();
 
-            return Ok(serie);
+            if (!User.IsAdmin() && !allowed.Contains(serie.Id))
+                return Forbid(); // 403
+
+            return Ok(new { serie.Id, serie.Nombre });
         }
 
-        // 🔹 Devuelve todas las subseries con sus tipos documentales
+        /// <summary>
+        /// Lista Subseries visibles según el rol (Admin ve todo).
+        /// Puedes filtrar por SerieId.
+        /// </summary>
         [HttpGet("subseries")]
-        public async Task<IActionResult> GetSubseries()
+        public async Task<IActionResult> GetSubseries([FromQuery] long? serieId = null)
         {
-            var subseries = await _db.Subseries
-                .Include(ss => ss.TiposDocumentales!)
+            var allowed = User.AllowedSeries();
+
+            var q = _db.Subseries
+                .AsNoTracking()
+                .Include(ss => ss.Serie)
+                .AsQueryable();
+
+            // Filtro por rol (serie)
+            if (!User.IsAdmin())
+                q = q.Where(ss => allowed.Contains(ss.SerieId));
+
+            // Filtro opcional por SerieId
+            if (serieId.HasValue)
+                q = q.Where(ss => ss.SerieId == serieId.Value);
+
+            var subseries = await q
+                .OrderBy(ss => ss.SerieId)
+                .ThenBy(ss => ss.Id)
                 .Select(ss => new
                 {
                     ss.Id,
                     ss.Nombre,
+                    ss.SerieId,
+                    Serie = ss.Serie!.Nombre,
                     ss.RetencionGestion,
                     ss.RetencionCentral,
-                    ss.DisposicionFinal,
-                    Tipos = ss.TiposDocumentales!.Select(t => new
-                    {
-                        t.Id,
-                        t.Nombre,
-                        t.DisposicionFinal
-                    })
+                    ss.DisposicionFinal
                 })
                 .ToListAsync();
 
             return Ok(subseries);
+        }
+
+        /// <summary>
+        /// Obtiene una Subserie por Id (valida acceso por rol).
+        /// </summary>
+        [HttpGet("subseries/{id:long}")]
+        public async Task<IActionResult> GetSubserieById(long id)
+        {
+            var allowed = User.AllowedSeries();
+
+            var ss = await _db.Subseries
+                .AsNoTracking()
+                .Include(s => s.Serie)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (ss is null)
+                return NotFound();
+
+            if (!User.IsAdmin() && !allowed.Contains(ss.SerieId))
+                return Forbid(); // 403
+
+            return Ok(new
+            {
+                ss.Id,
+                ss.Nombre,
+                ss.SerieId,
+                Serie = ss.Serie!.Nombre,
+                ss.RetencionGestion,
+                ss.RetencionCentral,
+                ss.DisposicionFinal
+            });
         }
     }
 }

@@ -99,9 +99,15 @@ namespace DmsContayPerezIPS.Infrastructure.Persistence
             // 🔹 Seed Roles
             // ==========================================================
             modelBuilder.Entity<Role>().HasData(
-                new Role { Id = 1, Name = "Admin" },
-                new Role { Id = 2, Name = "User" }
-            );
+               new Role { Id = 1, Name = "Admin" },
+               new Role { Id = 10, Name = "GestClinica" },
+               new Role { Id = 11, Name = "GestiAdmin" },
+               new Role { Id = 12, Name = "GestFinYCon" },
+               new Role { Id = 13, Name = "GestJurid" },
+               new Role { Id = 14, Name = "GestCalidad" },
+               new Role { Id = 15, Name = "SGSST" },
+               new Role { Id = 16, Name = "AdminEquBiomed" }
+               );
 
             // ==========================================================
             // 🔹 Seed Series (7)
