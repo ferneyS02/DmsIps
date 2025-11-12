@@ -3,36 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.infrastructure\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|solutionrelative:dmscontayperezips.infrastructure\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.infrastructure\\migrations\\20251112160454_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|solutionrelative:dmscontayperezips.infrastructure\\migrations\\20251112160454_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\controllers\\documentoscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\controllers\\documentoscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\controllers\\trdcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\controllers\\trdcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\controllers\\tiposdocumentalescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\controllers\\tiposdocumentalescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\authorization\\seriesaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\authorization\\seriesaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.api\\dmscontayperezips.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{BA251AA0-AC56-4156-8CBE-CF6EE1FB2E72}|DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj|solutionrelative:dmscontayperezips.api\\dmscontayperezips.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|c:\\users\\ferney\\source\\repos\\dmscontayperezips\\dmscontayperezips.infrastructure\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{02263D79-90FB-4734-AF1C-3B37C4398B48}|DmsContayPerezIPS.Infrastructure\\DmsContayPerezIPS.Infrastructure.csproj|solutionrelative:dmscontayperezips.infrastructure\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -42,24 +30,51 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 4,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 1,
               "Title": "AppDbContext.cs",
               "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\AppDbContext.cs",
               "RelativeDocumentMoniker": "DmsContayPerezIPS.Infrastructure\\AppDbContext.cs",
               "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\AppDbContext.cs",
               "RelativeToolTip": "DmsContayPerezIPS.Infrastructure\\AppDbContext.cs",
-              "ViewState": "AgIAAH0AAAAAAAAAAAAswG0AAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAF8AAAAAAAAAAAAswGsAAAArAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-11T22:05:01.811Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
+              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
+              "ViewState": "AgIAAJoAAAAAAAAAAAAcwKoAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-12T19:44:57.341Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "20251112160454_InitialCreate.cs",
+              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\Migrations\\20251112160454_InitialCreate.cs",
+              "RelativeDocumentMoniker": "DmsContayPerezIPS.Infrastructure\\Migrations\\20251112160454_InitialCreate.cs",
+              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.Infrastructure\\Migrations\\20251112160454_InitialCreate.cs",
+              "RelativeToolTip": "DmsContayPerezIPS.Infrastructure\\Migrations\\20251112160454_InitialCreate.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-12T16:04:55.543Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
               "Title": "TRDController.cs",
               "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\TRDController.cs",
               "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Controllers\\TRDController.cs",
@@ -71,77 +86,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "DocumentosController.cs",
               "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs",
               "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs*",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs*",
-              "ViewState": "AgIAAEkAAAAAAAAAAAAmwA4BAAAAAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs",
+              "RelativeToolTip": "DmsContayPerezIPS.API\\Controllers\\DocumentosController.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAQwBMAAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-12T13:10:46.363Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "AuthController.cs",
-              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
-              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\Controllers\\AuthController.cs",
-              "ViewState": "AgIAAKkAAAAAAAAAAAAAAA8AAAAfAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-12T13:58:47.513Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Program.cs",
-              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Program.cs",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Program.cs*",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\Program.cs*",
-              "ViewState": "AgIAAKIAAAAAAAAAAAAAAK0AAAAXAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-12T13:59:54.033Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "TiposDocumentalesController.cs",
-              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\TiposDocumentalesController.cs",
-              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Controllers\\TiposDocumentalesController.cs",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Controllers\\TiposDocumentalesController.cs",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\Controllers\\TiposDocumentalesController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEYAAAAvAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-12T13:12:06.518Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "SeriesAccess.cs",
-              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Authorization\\SeriesAccess.cs",
-              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\Authorization\\SeriesAccess.cs",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\Authorization\\SeriesAccess.cs",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\Authorization\\SeriesAccess.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-12T15:08:22.037Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "DmsContayPerezIPS.API.csproj",
-              "DocumentMoniker": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
-              "RelativeDocumentMoniker": "DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
-              "ToolTip": "C:\\Users\\Ferney\\source\\repos\\DmsContayPerezIPS\\DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
-              "RelativeToolTip": "DmsContayPerezIPS.API\\DmsContayPerezIPS.API.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-11-12T15:07:21.21Z"
             }
           ]
         }

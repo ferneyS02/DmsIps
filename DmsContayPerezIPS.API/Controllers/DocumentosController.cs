@@ -1,6 +1,6 @@
-﻿using System.Security.Claims;
+﻿using System.IO;
+using System.Security.Claims;
 using System.Text.Json;
-using DmsContayPerezIPS.API.Authorization;        // AllowedSeries() / IsAdmin()
 using DmsContayPerezIPS.Domain.Entities;
 using DmsContayPerezIPS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -28,9 +28,10 @@ namespace DmsContayPerezIPS.API.Controllers
             _config = config;
         }
 
-        /// <summary>
-        /// Lista documentos con filtros opcionales y control por serie según rol.
-        /// </summary>
+        // ==========================================================
+        // GET: api/documentos
+        // Lista documentos con filtros + control por serie según rol
+        // ==========================================================
         [HttpGet]
         public async Task<IActionResult> Get(
             [FromQuery] long? serieId,
@@ -38,7 +39,7 @@ namespace DmsContayPerezIPS.API.Controllers
             [FromQuery] long? tipoDocId,
             [FromQuery] string? q)
         {
-            var allowed = User.AllowedSeries();
+            var allowed = AllowedSeries(User);
 
             var query = _db.Documents
                 .AsNoTracking()
@@ -47,7 +48,7 @@ namespace DmsContayPerezIPS.API.Controllers
                         .ThenInclude(s => s.Serie)
                 .Where(d => !d.IsDeleted);
 
-            if (!User.IsAdmin())
+            if (!IsAdmin(User))
             {
                 query = query.Where(d =>
                     d.TipoDocumental != null &&
@@ -97,13 +98,14 @@ namespace DmsContayPerezIPS.API.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// Obtiene un documento por Id validando acceso por serie según rol.
-        /// </summary>
+        // ==========================================================
+        // GET: api/documentos/{id}
+        // Detalle por Id con control por serie
+        // ==========================================================
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
         {
-            var allowed = User.AllowedSeries();
+            var allowed = AllowedSeries(User);
 
             var d = await _db.Documents
                 .AsNoTracking()
@@ -114,10 +116,10 @@ namespace DmsContayPerezIPS.API.Controllers
 
             if (d is null) return NotFound("Documento no existe");
 
-            if (!User.IsAdmin())
+            if (!IsAdmin(User))
             {
-                var serieId = d.TipoDocumental?.Subserie?.SerieId;
-                if (serieId == null || !allowed.Contains(serieId.Value))
+                var sid = d.TipoDocumental?.Subserie?.SerieId;
+                if (sid is null || !allowed.Contains(sid.Value))
                     return Forbid();
             }
 
@@ -143,74 +145,81 @@ namespace DmsContayPerezIPS.API.Controllers
             });
         }
 
-        /// <summary>
-        /// Sube un documento a MinIO y crea el registro. Controla acceso por serie (según TipoDocumental).
-        /// </summary>
+        // ==========================================================
+        // POST: api/documentos/upload
+        // Upload (Swagger-friendly): un solo parámetro [FromForm]
+        // ==========================================================
+        public class UploadForm
+        {
+            [FromForm] public IFormFile File { get; set; } = null!;
+            [FromForm] public long TipoDocId { get; set; }
+            [FromForm] public long? FolderId { get; set; }
+            [FromForm] public DateTime? DocumentDate { get; set; }
+            [FromForm] public string? MetadataJson { get; set; }
+        }
+
         [HttpPost("upload")]
         [RequestSizeLimit(long.MaxValue)]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> Upload([FromForm] IFormFile file, [FromForm] UploadRequest req, CancellationToken ct)
+        public async Task<IActionResult> Upload([FromForm] UploadForm form, CancellationToken ct)
         {
-            if (file is null || file.Length == 0) return BadRequest("Archivo vacío");
+            if (form.File is null || form.File.Length == 0)
+                return BadRequest("Archivo vacío");
 
             var tipo = await _db.TiposDocumentales
                 .Include(t => t.Subserie!)
-                .FirstOrDefaultAsync(t => t.Id == req.TipoDocId, ct);
+                .FirstOrDefaultAsync(t => t.Id == form.TipoDocId, ct);
 
             if (tipo is null) return BadRequest("Tipo documental no existe");
 
-            // Validar acceso por serie
-            if (!User.IsAdmin())
+            if (!IsAdmin(User))
             {
-                var allowed = User.AllowedSeries();
+                var allowed = AllowedSeries(User);
                 if (tipo.Subserie == null || !allowed.Contains(tipo.Subserie.SerieId))
                     return Forbid();
             }
 
             var bucket = _config["MinIO:Bucket"] ?? "dms";
-            var objectName = BuildObjectName(file.FileName, req.TipoDocId);
+            var objectName = BuildObjectName(form.File.FileName, form.TipoDocId);
 
-            // Subir a MinIO
-            await using (var stream = file.OpenReadStream())
+            await using (var stream = form.File.OpenReadStream())
             {
                 var put = new PutObjectArgs()
                     .WithBucket(bucket)
                     .WithObject(objectName)
                     .WithStreamData(stream)
-                    .WithObjectSize(file.Length)
-                    .WithContentType(file.ContentType ?? "application/octet-stream");
+                    .WithObjectSize(form.File.Length)
+                    .WithContentType(form.File.ContentType ?? "application/octet-stream");
 
                 await _minio.PutObjectAsync(put, ct);
             }
 
-            // Crear registro en BD
             var nowUtc = DateTime.UtcNow;
             var userId = GetUserIdOrNull(User);
 
             var doc = new Document
             {
-                OriginalName = file.FileName,
+                OriginalName = form.File.FileName,
                 ObjectName = objectName,
-                ContentType = file.ContentType ?? "application/octet-stream",
-                SizeBytes = file.Length,
-                FolderId = req.FolderId,
-                TipoDocId = req.TipoDocId,               // FK se mantiene en el modelo
+                ContentType = form.File.ContentType ?? "application/octet-stream",
+                SizeBytes = form.File.Length,
+                FolderId = form.FolderId,
+                TipoDocId = form.TipoDocId,
                 CurrentVersion = 1,
-                MetadataJson = req.MetadataJson,
+                MetadataJson = form.MetadataJson,
                 ExtractedText = null,
                 IsDeleted = false,
                 CreatedBy = userId,
                 CreatedAt = nowUtc,
                 UpdatedBy = userId,
                 UpdatedAt = nowUtc,
-                DocumentDate = req.DocumentDate,
-                SearchText = $"{file.FileName} {(req.MetadataJson ?? string.Empty)}"
+                DocumentDate = form.DocumentDate,
+                SearchText = $"{form.File.FileName} {(form.MetadataJson ?? string.Empty)}"
             };
 
             _db.Documents.Add(doc);
             await _db.SaveChangesAsync(ct);
 
-            // Guardar versión
             _db.DocumentVersions.Add(new DocumentVersion
             {
                 DocumentId = doc.Id,
@@ -226,26 +235,124 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // Helpers / DTOs
+        // GET: api/documentos/{id}/download
+        // Descarga por la API (para archivos pequeños/medianos)
         // ==========================================================
-        public class UploadRequest
+        [HttpGet("{id:long}/download")]
+        public async Task<IActionResult> Download(long id, CancellationToken ct)
         {
-            public long TipoDocId { get; set; }          // FK a TipoDocumental (mantener nombre de columna)
-            public long? FolderId { get; set; }
-            public DateTime? DocumentDate { get; set; }
-            public string? MetadataJson { get; set; }
+            var allowed = AllowedSeries(User);
+
+            var d = await _db.Documents
+                .AsNoTracking()
+                .Include(x => x.TipoDocumental!)
+                    .ThenInclude(td => td.Subserie!)
+                        .ThenInclude(s => s.Serie)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+
+            if (d is null) return NotFound("Documento no existe");
+
+            if (!IsAdmin(User))
+            {
+                var sid = d.TipoDocumental?.Subserie?.SerieId;
+                if (sid is null || !allowed.Contains(sid.Value))
+                    return Forbid();
+            }
+
+            var bucket = _config["MinIO:Bucket"] ?? "dms";
+            if (string.IsNullOrWhiteSpace(d.ObjectName))
+                return BadRequest("Documento sin objeto asociado");
+
+            var ms = new MemoryStream();
+            await _minio.GetObjectAsync(
+                new GetObjectArgs()
+                    .WithBucket(bucket)
+                    .WithObject(d.ObjectName)
+                    .WithCallbackStream(s => s.CopyTo(ms)),
+                ct
+            );
+            ms.Position = 0;
+
+            var contentType = !string.IsNullOrWhiteSpace(d.ContentType) ? d.ContentType : "application/octet-stream";
+            var downloadName = !string.IsNullOrWhiteSpace(d.OriginalName) ? d.OriginalName : Path.GetFileName(d.ObjectName);
+
+            return File(ms, contentType, downloadName);
+        }
+
+        // ==========================================================
+        // GET: api/documentos/{id}/url?expiresSeconds=600
+        // URL prefirmada de MinIO para descarga directa (recomendado)
+        // ==========================================================
+        [HttpGet("{id:long}/url")]
+        public async Task<IActionResult> GetPresignedUrl(long id, [FromQuery] int expiresSeconds = 600, CancellationToken ct = default)
+        {
+            var allowed = AllowedSeries(User);
+
+            var d = await _db.Documents
+                .AsNoTracking()
+                .Include(x => x.TipoDocumental!)
+                    .ThenInclude(td => td.Subserie!)
+                        .ThenInclude(s => s.Serie)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+
+            if (d is null) return NotFound("Documento no existe");
+
+            if (!IsAdmin(User))
+            {
+                var sid = d.TipoDocumental?.Subserie?.SerieId;
+                if (sid is null || !allowed.Contains(sid.Value))
+                    return Forbid();
+            }
+
+            var bucket = _config["MinIO:Bucket"] ?? "dms";
+            if (string.IsNullOrWhiteSpace(d.ObjectName))
+                return BadRequest("Documento sin objeto asociado");
+
+            var expiry = Math.Clamp(expiresSeconds, 60, 24 * 3600);
+
+            var url = await _minio.PresignedGetObjectAsync(
+                new PresignedGetObjectArgs()
+                    .WithBucket(bucket)
+                    .WithObject(d.ObjectName)
+                    .WithExpiry(expiry)
+            );
+
+            return Ok(new { url, expiresIn = expiry });
+        }
+
+        // ==========================================================
+        // Helpers locales (evitan depender de clases externas)
+        // ==========================================================
+        private static bool IsAdmin(ClaimsPrincipal user) => user.IsInRole("Admin");
+
+        private static IReadOnlyCollection<long> AllowedSeries(ClaimsPrincipal user)
+        {
+            if (IsAdmin(user)) return new long[] { 1, 2, 3, 4, 5, 6, 7 };
+            var role = user.FindFirstValue(ClaimTypes.Role);
+            if (string.IsNullOrWhiteSpace(role)) return Array.Empty<long>();
+
+            // Map de rol -> SerieId (según tu seed)
+            return role switch
+            {
+                "GestClinica" => new long[] { 1 },
+                "GestiAdmin" => new long[] { 2 },
+                "GestFinYCon" => new long[] { 3 },
+                "GestJurid" => new long[] { 4 },
+                "GestCalidad" => new long[] { 5 },
+                "SGSST" => new long[] { 6 },
+                "AdminEquBiomed" => new long[] { 7 },
+                _ => Array.Empty<long>()
+            };
         }
 
         private static long? GetUserIdOrNull(ClaimsPrincipal user)
         {
             var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (long.TryParse(id, out var parsed)) return parsed;
-            return null;
+            return long.TryParse(id, out var parsed) ? parsed : null;
         }
 
         private static string BuildObjectName(string originalName, long tipoDocId)
         {
-            // Limpio y con prefijo por tipoDoc
             string clean = SanitizeFileName(originalName);
             return $"td/{tipoDocId}/{Guid.NewGuid():N}_{clean}";
         }
@@ -254,10 +361,8 @@ namespace DmsContayPerezIPS.API.Controllers
         {
             try
             {
-                var invalid = Path.GetInvalidFileNameChars();
-                foreach (var ch in invalid)
+                foreach (var ch in Path.GetInvalidFileNameChars())
                     name = name.Replace(ch, '_');
-                // Evitar nombres excesivos
                 if (name.Length > 150) name = name[^150..];
                 return name;
             }

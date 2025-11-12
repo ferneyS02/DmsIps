@@ -252,8 +252,38 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = 2L,
-                            Name = "User"
+                            Id = 10L,
+                            Name = "GestClinica"
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            Name = "GestiAdmin"
+                        },
+                        new
+                        {
+                            Id = 12L,
+                            Name = "GestFinYCon"
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            Name = "GestJurid"
+                        },
+                        new
+                        {
+                            Id = 14L,
+                            Name = "GestCalidad"
+                        },
+                        new
+                        {
+                            Id = 15L,
+                            Name = "SGSST"
+                        },
+                        new
+                        {
+                            Id = 16L,
+                            Name = "AdminEquBiomed"
                         });
                 });
 

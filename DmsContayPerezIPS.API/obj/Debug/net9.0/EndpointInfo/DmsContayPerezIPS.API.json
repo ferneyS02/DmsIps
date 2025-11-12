@@ -1,10 +1,22 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "DmsContayPerezIPS.API",
+    "title": "DmsContayPerezIPS API",
     "version": "v1"
   },
   "paths": {
+    "/api/Auth/roles": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Auth/register": {
       "post": {
         "tags": [
@@ -26,12 +38,18 @@
             }
           },
           {
+            "name": "roleName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "roleId",
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 2
+              "format": "int64"
             }
           }
         ],
@@ -70,40 +88,36 @@
         }
       }
     },
-    "/api/Documentos/upload": {
+    "/api/Auth/Assign-role": {
       "post": {
         "tags": [
-          "Documentos"
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "issueNewToken",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
         ],
         "requestBody": {
           "content": {
-            "multipart/form-data": {
+            "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  },
-                  "tipoDocId": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "documentDate": {
-                    "type": "string"
-                  }
-                }
-              },
-              "encoding": {
-                "file": {
-                  "style": "form"
-                },
-                "tipoDocId": {
-                  "style": "form"
-                },
-                "documentDate": {
-                  "style": "form"
-                }
+                "$ref": "#/components/schemas/AssignRoleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleRequest"
               }
             }
           }
@@ -115,84 +129,12 @@
         }
       }
     },
-    "/api/Documentos/list": {
-      "get": {
-        "tags": [
-          "Documentos"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Documentos/download/{id}": {
+    "/api/Documentos": {
       "get": {
         "tags": [
           "Documentos"
         ],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Documentos/search": {
-      "get": {
-        "tags": [
-          "Documentos"
-        ],
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fromUpload",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "toUpload",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "fromDoc",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "toDoc",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "serieId",
             "in": "query",
@@ -218,27 +160,6 @@
             }
           },
           {
-            "name": "metadata",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Documentos/fulltext": {
-      "get": {
-        "tags": [
-          "Documentos"
-        ],
-        "parameters": [
-          {
             "name": "q",
             "in": "query",
             "schema": {
@@ -253,10 +174,21 @@
         }
       }
     },
-    "/api/TiposDocumentales/list": {
+    "/api/Documentos/{id}": {
       "get": {
         "tags": [
-          "TiposDocumentales"
+          "Documentos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -265,7 +197,166 @@
         }
       }
     },
-    "/api/TRD/series": {
+    "/api/Documentos/upload": {
+      "post": {
+        "tags": [
+          "Documentos"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "TipoDocId": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "FolderId": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "DocumentDate": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "MetadataJson": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "TipoDocId": {
+                  "style": "form"
+                },
+                "FolderId": {
+                  "style": "form"
+                },
+                "DocumentDate": {
+                  "style": "form"
+                },
+                "MetadataJson": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Documentos/{id}/download": {
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Documentos/{id}/url": {
+      "get": {
+        "tags": [
+          "Documentos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "expiresSeconds",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 600
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TiposDocumentales": {
+      "get": {
+        "tags": [
+          "TiposDocumentales"
+        ],
+        "parameters": [
+          {
+            "name": "subserieId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TiposDocumentales/{id}": {
+      "get": {
+        "tags": [
+          "TiposDocumentales"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/trd/series": {
       "get": {
         "tags": [
           "TRD"
@@ -277,7 +368,7 @@
         }
       }
     },
-    "/api/TRD/series/{id}": {
+    "/api/trd/series/{id}": {
       "get": {
         "tags": [
           "TRD"
@@ -300,10 +391,43 @@
         }
       }
     },
-    "/api/TRD/subseries": {
+    "/api/trd/subseries": {
       "get": {
         "tags": [
           "TRD"
+        ],
+        "parameters": [
+          {
+            "name": "serieId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/trd/subseries/{id}": {
+      "get": {
+        "tags": [
+          "TRD"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -314,12 +438,38 @@
     }
   },
   "components": {
+    "schemas": {
+      "AssignRoleRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "roleName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "securitySchemes": {
       "Bearer": {
-        "type": "apiKey",
-        "description": "Escribe: Bearer {tu_token}",
-        "name": "Authorization",
-        "in": "header"
+        "type": "http",
+        "description": "JWT Bearer. Ej: 'Bearer {token}'",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   },
