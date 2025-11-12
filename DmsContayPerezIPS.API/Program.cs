@@ -1,6 +1,6 @@
 ﻿using DmsContayPerezIPS.API.Services;               // ITextExtractor / PdfDocxTextExtractor
 using DmsContayPerezIPS.Infrastructure.Persistence;
-using DmsContayPerezIPS.Infrastructure.Seed;
+using DmsContayPerezIPS.Infrastructure.Seed;        // 👈 SeederService
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;                    // Para IFormFile en Swagger MapType
 using Microsoft.EntityFrameworkCore;
@@ -8,8 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Minio;
 using Minio.DataModel.Args;
-using System.IdentityModel.Tokens.Jwt;              // 👈 añadido para RoleClaimType
-using System.Security.Claims;                       // 👈 añadido para RoleClaimType
+using System.IdentityModel.Tokens.Jwt;              // 👈 RoleClaimType
+using System.Security.Claims;                       // 👈 RoleClaimType
 using System.Text;
 
 // ====== Opcional: cargar variables desde .env si existe ======
@@ -109,7 +109,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["JWT:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
 
-            // 👇 Claves para que [Authorize(Roles="...")] funcione sí o sí
+            // 👇 Claves para que [Authorize(Roles="...")] funcione
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.Name
         };
@@ -138,29 +138,27 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
+        // 1) Asegurar bucket (si falla no bloquea el arranque)
         bool exists = await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(bucket));
         if (!exists)
-        {
             await minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket));
-        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[MinIO] Error al verificar/crear bucket '{bucket}': {ex.Message}");
-        // No arrojamos excepción para no bloquear el arranque si MinIO no está disponible aún
+        Console.WriteLine($"[MinIO] Warn: {ex.Message}");
     }
 
     try
     {
+        // 2) Migraciones
         await db.Database.MigrateAsync();
 
-        // Seeding de TRD/tipos si corresponde (mantén tu lógica actual de seed)
-        // Nota: Seeder es parte de tu solución (Infrastructure.Seed)
-        await Seeder.RunAsync(db);
+        // 3) Seeder real de tu repo (👈 este es el correcto)
+        await SeederService.SeedAsync(db, minio, bucket);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[EF] Error en migraciones/seeding: {ex.Message}");
+        Console.WriteLine($"[EF/Seed] Warn: {ex.Message}");
     }
 }
 
@@ -172,7 +170,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
