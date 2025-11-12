@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- DOCX (gratis) -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <!-- Variables de entorno (si las usas) -->
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+
+    <!-- ✅ PdfPig (MIT) para extraer texto de PDFs -->
+    <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
+
+    <!-- MinIO -->
+    <PackageReference Include="Minio" Version="6.0.5" />
+
+    <!-- ASP.NET Core + EF + Swagger -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DmsContayPerezIPS.Application\DmsContayPerezIPS.Application.csproj" />
+    <ProjectReference Include="..\DmsContayPerezIPS.Infrastructure\DmsContayPerezIPS.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

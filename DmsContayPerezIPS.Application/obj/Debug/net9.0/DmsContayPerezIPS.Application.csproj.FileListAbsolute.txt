@@ -1,0 +1,16 @@
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\bin\Debug\net9.0\DmsContayPerezIPS.Application.deps.json
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\bin\Debug\net9.0\DmsContayPerezIPS.Application.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\bin\Debug\net9.0\DmsContayPerezIPS.Application.pdb
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\bin\Debug\net9.0\DmsContayPerezIPS.Domain.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\bin\Debug\net9.0\DmsContayPerezIPS.Domain.pdb
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.csproj.AssemblyReference.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.AssemblyInfoInputs.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.AssemblyInfo.cs
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.csproj.CoreCompileInputs.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.sourcelink.json
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsConta.7B131FF0.Up2Date
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\refint\DmsContayPerezIPS.Application.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\DmsContayPerezIPS.Application.pdb
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Application\obj\Debug\net9.0\ref\DmsContayPerezIPS.Application.dll

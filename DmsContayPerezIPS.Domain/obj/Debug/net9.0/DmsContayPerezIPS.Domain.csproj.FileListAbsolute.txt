@@ -1,0 +1,13 @@
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\bin\Debug\net9.0\DmsContayPerezIPS.Domain.deps.json
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\bin\Debug\net9.0\DmsContayPerezIPS.Domain.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\bin\Debug\net9.0\DmsContayPerezIPS.Domain.pdb
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.csproj.AssemblyReference.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.AssemblyInfoInputs.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.AssemblyInfo.cs
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.sourcelink.json
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\refint\DmsContayPerezIPS.Domain.dll
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\DmsContayPerezIPS.Domain.pdb
+C:\Users\Ferney\source\repos\DmsContayPerezIPS\DmsContayPerezIPS.Domain\obj\Debug\net9.0\ref\DmsContayPerezIPS.Domain.dll
