@@ -36,6 +36,7 @@ namespace DmsContayPerezIPS.API.Controllers
         // Soporta búsqueda por fecha en:
         //   - parámetros fromDoc/toDoc
         //   - detección dentro de 'q' (2025-11-12, 11/2025, "noviembre 2025", etc.)
+        // Incluye quién subió el documento (UploadedById/UploadedByName)
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> Get(
@@ -111,7 +112,14 @@ namespace DmsContayPerezIPS.API.Controllers
                     d.MetadataJson,
                     d.ExtractedText,
                     d.CreatedAt,
-                    d.UpdatedAt
+                    d.UpdatedAt,
+
+                    // 👇 Quién subió el documento (usa CreatedBy)
+                    UploadedById = d.CreatedBy,
+                    UploadedByName = _db.Users
+                        .Where(u => u.Id == d.CreatedBy)
+                        .Select(u => u.Username)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -120,7 +128,7 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // GET: /api/Documentos/{id}
-        // Detalle con control por serie
+        // Detalle con control por serie (incluye quién subió)
         // ==========================================================
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
@@ -161,13 +169,21 @@ namespace DmsContayPerezIPS.API.Controllers
                 d.CentralUntil,
                 d.DocumentDate,
                 d.CreatedAt,
-                d.UpdatedAt
+                d.UpdatedAt,
+
+                // 👇 Quién subió
+                UploadedById = d.CreatedBy,
+                UploadedByName = _db.Users
+                    .Where(u => u.Id == d.CreatedBy)
+                    .Select(u => u.Username)
+                    .FirstOrDefault()
             });
         }
 
         // ==========================================================
         // POST: /api/Documentos/upload
         // Upload a MinIO (Swagger-friendly): un solo DTO [FromForm]
+        // Guarda CreatedBy a partir del claim NameIdentifier del token
         // ==========================================================
         public class UploadForm
         {
@@ -215,7 +231,7 @@ namespace DmsContayPerezIPS.API.Controllers
             }
 
             var nowUtc = DateTime.UtcNow;
-            var userId = GetUserIdOrNull(User);
+            var userId = GetUserIdOrNull(User); // requiere que el JWT tenga ClaimTypes.NameIdentifier
 
             var doc = new Document
             {
@@ -367,6 +383,8 @@ namespace DmsContayPerezIPS.API.Controllers
 
         private static long? GetUserIdOrNull(ClaimsPrincipal user)
         {
+            // 👇 Asegúrate de incluir este claim en tu AuthController.Login:
+            // new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
             return long.TryParse(id, out var parsed) ? parsed : null;
         }

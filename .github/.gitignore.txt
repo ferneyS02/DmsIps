@@ -1,0 +1,41 @@
+# =========================
+# Visual Studio / VSCode
+# =========================
+.vs/
+*.user
+*.suo
+*.cache
+
+# =========================
+# Build outputs
+# =========================
+bin/
+obj/
+*.pdb
+*.dll
+*.exe
+
+# =========================
+# JetBrains / Rider
+# =========================
+.idea/
+
+# =========================
+# Node / npm (si llegas a usar)
+# =========================
+node_modules/
+
+# =========================
+# Logs / temporales
+# =========================
+*.log
+*.tmp
+*.vsidx
+*.db
+*.db-shm
+*.db-wal
+
+# =========================
+# Configuración local de usuario
+# =========================
+appsettings.Local.json

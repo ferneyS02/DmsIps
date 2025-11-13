@@ -1,13 +1,14 @@
-﻿using BCrypt.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using BCrypt.Net;
 using DmsContayPerezIPS.Domain.Entities;
 using DmsContayPerezIPS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace DmsContayPerezIPS.API.Controllers
 {
@@ -24,10 +25,25 @@ namespace DmsContayPerezIPS.API.Controllers
             _config = config;
         }
 
-        // ============================================
-        // GET /api/Auth/roles  -> lista roles (para dropdown)
-        // ============================================
+        // ========= DTOs =========
+        public sealed class RegisterRequest
+        {
+            [Required] public string Username { get; set; } = default!;
+            [Required, MinLength(6)] public string Password { get; set; } = default!;
+            // Elige uno: RoleName (recomendado) o RoleId
+            public string? RoleName { get; set; }
+            public long? RoleId { get; set; }
+        }
+
+        public sealed class LoginRequest
+        {
+            [Required] public string Username { get; set; } = default!;
+            [Required] public string Password { get; set; } = default!;
+        }
+
+        // ========= 1) Lista de roles (para el dropdown del registro) =========
         [HttpGet("roles")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetRoles()
         {
             var roles = await _db.Roles
@@ -39,64 +55,65 @@ namespace DmsContayPerezIPS.API.Controllers
             return Ok(roles);
         }
 
-        // ============================================
-        // POST /api/Auth/register
-        // Registro: elegir rol por roleName o roleId (uno de los dos)
-        // ============================================
+        // ========= 2) Registro (JSON en body) =========
         [HttpPost("register")]
-        public async Task<IActionResult> Register(
-            [FromQuery] string username,
-            [FromQuery] string password,
-            [FromQuery] string? roleName = null,
-            [FromQuery] long? roleId = null)
+        [AllowAnonymous]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest dto)
         {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-                return BadRequest("❌ Debes enviar username y password");
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-            if (await _db.Users.AnyAsync(u => u.Username == username))
+            if (await _db.Users.AnyAsync(u => u.Username == dto.Username))
                 return BadRequest("❌ El usuario ya existe");
 
-            if (string.IsNullOrWhiteSpace(roleName) && !roleId.HasValue)
-                return BadRequest("❌ Debes indicar roleName o roleId");
+            if (string.IsNullOrWhiteSpace(dto.RoleName) && !dto.RoleId.HasValue)
+                return BadRequest("❌ Debes indicar RoleName o RoleId");
 
             Role? role = null;
 
-            if (!string.IsNullOrWhiteSpace(roleName))
-                role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
-            else if (roleId.HasValue)
-                role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == roleId.Value);
+            if (!string.IsNullOrWhiteSpace(dto.RoleName))
+            {
+                var rn = dto.RoleName.Trim();
+                role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == rn);
+            }
+            else if (dto.RoleId.HasValue)
+            {
+                role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == dto.RoleId.Value);
+            }
 
             if (role is null)
                 return BadRequest("❌ El rol especificado no existe");
 
             var user = new User
             {
-                Username = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                Username = dto.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 RoleId = role.Id
             };
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            return Ok("✅ Usuario registrado con éxito");
+            return Ok(new { message = "✅ Usuario registrado con éxito", user = user.Username, role = role.Name });
         }
 
-        // ============================================
-        // POST /api/Auth/login
-        // ============================================
+        // ========= 3) Login (JSON en body) =========
         [HttpPost("login")]
-        public async Task<IActionResult> Login(string username, string password)
+        [AllowAnonymous]
+        public async Task<IActionResult> Login([FromBody] LoginRequest dto)
         {
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
             var user = await _db.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Username == username);
+                .FirstOrDefaultAsync(u => u.Username == dto.Username);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("❌ Credenciales inválidas");
 
+            // 👇 IMPORTANTE: NameIdentifier (Id) + Name + Role
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? "User")
             };
@@ -109,7 +126,7 @@ namespace DmsContayPerezIPS.API.Controllers
                 issuer: _config["JWT:Issuer"],
                 audience: _config["JWT:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(2),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds
             );
 
@@ -121,88 +138,28 @@ namespace DmsContayPerezIPS.API.Controllers
             });
         }
 
-        // ============================================
-        // POST /api/Auth/Assign-role   (solo Admin)
-        // Cambia el rol de un usuario existente.
-        // Acepta (userId o username) + (roleId o roleName).
-        // Opcional: ?issueNewToken=true para devolver nuevo JWT del usuario reasignado.
-        // ============================================
-        public class AssignRoleRequest
+        // ========= (Opcional) Endpoints legacy por query para no romper clientes antiguos =========
+
+        [HttpPost("register-legacy")]
+        [AllowAnonymous]
+        public Task<IActionResult> RegisterLegacy(
+            [FromQuery] string username,
+            [FromQuery] string password,
+            [FromQuery] string? roleName = null,
+            [FromQuery] long? roleId = null)
         {
-            public long? UserId { get; set; }
-            public string? Username { get; set; }
-            public long? RoleId { get; set; }
-            public string? RoleName { get; set; }
+            var dto = new RegisterRequest { Username = username, Password = password, RoleName = roleName, RoleId = roleId };
+            return Register(dto);
         }
 
-        [HttpPost("Assign-role")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AssignRole(
-            [FromBody] AssignRoleRequest req,
-            [FromQuery] bool issueNewToken = false,
-            CancellationToken ct = default)
+        [HttpPost("login-legacy")]
+        [AllowAnonymous]
+        public Task<IActionResult> LoginLegacy(
+            [FromQuery] string username,
+            [FromQuery] string password)
         {
-            if ((req.UserId is null && string.IsNullOrWhiteSpace(req.Username)) ||
-                (req.RoleId is null && string.IsNullOrWhiteSpace(req.RoleName)))
-                return BadRequest("Debes indicar (UserId o Username) y (RoleId o RoleName).");
-
-            // Usuario
-            var user = req.UserId.HasValue
-                ? await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == req.UserId.Value, ct)
-                : await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == req.Username!, ct);
-
-            if (user is null) return NotFound("Usuario no encontrado.");
-
-            // Rol destino
-            var role = req.RoleId.HasValue
-                ? await _db.Roles.FirstOrDefaultAsync(r => r.Id == req.RoleId.Value, ct)
-                : await _db.Roles.FirstOrDefaultAsync(r => r.Name == req.RoleName!, ct);
-
-            if (role is null) return NotFound("Rol no encontrado.");
-
-            if (user.RoleId == role.Id)
-            {
-                // Idempotencia
-                if (!issueNewToken) return Ok(new { message = "El usuario ya tiene ese rol", user = user.Username, role = role.Name });
-
-                // Emitir token igualmente si lo solicitaron
-                var tokenSame = IssueToken(user.Username, role.Name);
-                return Ok(new { message = "El usuario ya tenía ese rol", user = user.Username, role = role.Name, token = tokenSame });
-            }
-
-            user.RoleId = role.Id;
-            await _db.SaveChangesAsync(ct);
-
-            if (!issueNewToken)
-                return Ok(new { message = "Rol asignado", user = user.Username, role = role.Name });
-
-            // Emitir nuevo token para ese usuario con el rol actualizado
-            var token = IssueToken(user.Username, role.Name);
-            return Ok(new { message = "Rol asignado", user = user.Username, role = role.Name, token });
-        }
-
-        // Helper para emitir JWT con rol
-        private string IssueToken(string username, string roleName)
-        {
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.Role, roleName)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _config["JWT:Key"] ?? "EstaEsUnaClaveJWTDeAlMenos32CaracteresSuperSegura!!123"));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _config["JWT:Issuer"],
-                audience: _config["JWT:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(2),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var dto = new LoginRequest { Username = username, Password = password };
+            return Login(dto);
         }
     }
 }

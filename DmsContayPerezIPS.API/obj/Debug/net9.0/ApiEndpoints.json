@@ -1,29 +1,24 @@
 [
   {
     "ContainingType": "DmsContayPerezIPS.API.Controllers.AuthController",
-    "Method": "AssignRole",
-    "RelativePath": "api/Auth/Assign-role",
+    "Method": "Login",
+    "RelativePath": "api/Auth/login",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "req",
-        "Type": "DmsContayPerezIPS.API.Controllers.AuthController\u002BAssignRoleRequest",
+        "Name": "dto",
+        "Type": "DmsContayPerezIPS.API.Controllers.AuthController\u002BLoginRequest",
         "IsRequired": true
-      },
-      {
-        "Name": "issueNewToken",
-        "Type": "System.Boolean",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": []
   },
   {
     "ContainingType": "DmsContayPerezIPS.API.Controllers.AuthController",
-    "Method": "Login",
-    "RelativePath": "api/Auth/login",
+    "Method": "LoginLegacy",
+    "RelativePath": "api/Auth/login-legacy",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -45,6 +40,22 @@
     "ContainingType": "DmsContayPerezIPS.API.Controllers.AuthController",
     "Method": "Register",
     "RelativePath": "api/Auth/register",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "DmsContayPerezIPS.API.Controllers.AuthController\u002BRegisterRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "DmsContayPerezIPS.API.Controllers.AuthController",
+    "Method": "RegisterLegacy",
+    "RelativePath": "api/Auth/register-legacy",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
