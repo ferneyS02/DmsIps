@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using System.IO;
 using System.Security.Claims;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using DmsContayPerezIPS.Domain.Entities;
 using DmsContayPerezIPS.Infrastructure.Persistence;
@@ -37,6 +36,7 @@ namespace DmsContayPerezIPS.API.Controllers
         //   - parámetros fromDoc/toDoc
         //   - detección dentro de 'q' (2025-11-12, 11/2025, "noviembre 2025", etc.)
         // Incluye quién subió el documento (UploadedById/UploadedByName)
+        // (NO expone folderId ni metadataJson)
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> Get(
@@ -109,8 +109,8 @@ namespace DmsContayPerezIPS.API.Controllers
                     SerieId = d.TipoDocumental!.Subserie!.SerieId,
                     Serie = d.TipoDocumental!.Subserie!.Serie!.Nombre,
                     d.CurrentVersion,
-                    d.MetadataJson,
-                    d.ExtractedText,
+                    // d.MetadataJson  // 👈 INTENCIONALMENTE NO SE EXPONE
+                    d.ExtractedText,  // si prefieres ocultarlo también, coméntalo
                     d.CreatedAt,
                     d.UpdatedAt,
 
@@ -129,6 +129,7 @@ namespace DmsContayPerezIPS.API.Controllers
         // ==========================================================
         // GET: /api/Documentos/{id}
         // Detalle con control por serie (incluye quién subió)
+        // (NO expone metadataJson ni folderId)
         // ==========================================================
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
@@ -163,8 +164,8 @@ namespace DmsContayPerezIPS.API.Controllers
                 SerieId = d.TipoDocumental?.Subserie?.SerieId,
                 Serie = d.TipoDocumental?.Subserie?.Serie?.Nombre,
                 d.CurrentVersion,
-                d.MetadataJson,
-                d.ExtractedText,
+                // d.MetadataJson, // 👈 oculto
+                d.ExtractedText,   // si prefieres ocultarlo, coméntalo
                 d.GestionUntil,
                 d.CentralUntil,
                 d.DocumentDate,
@@ -183,15 +184,17 @@ namespace DmsContayPerezIPS.API.Controllers
         // ==========================================================
         // POST: /api/Documentos/upload
         // Upload a MinIO (Swagger-friendly): un solo DTO [FromForm]
+        // NO acepta folderId ni metadataJson
         // Guarda CreatedBy a partir del claim NameIdentifier del token
         // ==========================================================
         public class UploadForm
         {
             [FromForm] public IFormFile File { get; set; } = null!;
             [FromForm] public long TipoDocId { get; set; }
-            [FromForm] public long? FolderId { get; set; }
             [FromForm] public DateTime? DocumentDate { get; set; }
-            [FromForm] public string? MetadataJson { get; set; }
+            // 👇 Eliminados:
+            // [FromForm] public long? FolderId { get; set; }
+            // [FromForm] public string? MetadataJson { get; set; }
         }
 
         [HttpPost("upload")]
@@ -231,7 +234,7 @@ namespace DmsContayPerezIPS.API.Controllers
             }
 
             var nowUtc = DateTime.UtcNow;
-            var userId = GetUserIdOrNull(User); // requiere que el JWT tenga ClaimTypes.NameIdentifier
+            var userId = GetUserIdOrNull(User); // del JWT; no se acepta "uploader" por el cliente
 
             var doc = new Document
             {
@@ -239,10 +242,10 @@ namespace DmsContayPerezIPS.API.Controllers
                 ObjectName = objectName,
                 ContentType = form.File.ContentType ?? "application/octet-stream",
                 SizeBytes = form.File.Length,
-                FolderId = form.FolderId,
+                FolderId = null,           // 👈 no se usa desde la API
                 TipoDocId = form.TipoDocId,
                 CurrentVersion = 1,
-                MetadataJson = form.MetadataJson,
+                MetadataJson = null,       // 👈 no se acepta desde la API
                 ExtractedText = null,
                 IsDeleted = false,
                 CreatedBy = userId,
@@ -250,7 +253,8 @@ namespace DmsContayPerezIPS.API.Controllers
                 UpdatedBy = userId,
                 UpdatedAt = nowUtc,
                 DocumentDate = form.DocumentDate,
-                SearchText = $"{form.File.FileName} {(form.MetadataJson ?? string.Empty)}"
+                // Solo nombre del archivo (sin metadataJson)
+                SearchText = form.File.FileName
             };
 
             _db.Documents.Add(doc);

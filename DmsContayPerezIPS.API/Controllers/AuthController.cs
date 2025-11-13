@@ -25,12 +25,12 @@ namespace DmsContayPerezIPS.API.Controllers
             _config = config;
         }
 
-        // ========= DTOs =========
+        // ===== DTOs =====
         public sealed class RegisterRequest
         {
             [Required] public string Username { get; set; } = default!;
             [Required, MinLength(6)] public string Password { get; set; } = default!;
-            // Elige uno: RoleName (recomendado) o RoleId
+            // Elige UNO: RoleName (recomendado) o RoleId
             public string? RoleName { get; set; }
             public long? RoleId { get; set; }
         }
@@ -39,6 +39,16 @@ namespace DmsContayPerezIPS.API.Controllers
         {
             [Required] public string Username { get; set; } = default!;
             [Required] public string Password { get; set; } = default!;
+        }
+
+        public sealed class AssignRoleRequest
+        {
+            // Identifica usuario con uno:
+            public long? UserId { get; set; }
+            public string? Username { get; set; }
+            // Identifica rol con uno:
+            public long? RoleId { get; set; }
+            public string? RoleName { get; set; }
         }
 
         // ========= 1) Lista de roles (para el dropdown del registro) =========
@@ -138,28 +148,49 @@ namespace DmsContayPerezIPS.API.Controllers
             });
         }
 
-        // ========= (Opcional) Endpoints legacy por query para no romper clientes antiguos =========
-
-        [HttpPost("register-legacy")]
-        [AllowAnonymous]
-        public Task<IActionResult> RegisterLegacy(
-            [FromQuery] string username,
-            [FromQuery] string password,
-            [FromQuery] string? roleName = null,
-            [FromQuery] long? roleId = null)
+        // ========= 4) Admin: asignar/cambiar rol =========
+        [Authorize(Roles = "Admin")]
+        [HttpPost("assign-role")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequest req, CancellationToken ct)
         {
-            var dto = new RegisterRequest { Username = username, Password = password, RoleName = roleName, RoleId = roleId };
-            return Register(dto);
-        }
+            if ((req.UserId is null && string.IsNullOrWhiteSpace(req.Username)) ||
+                (req.RoleId is null && string.IsNullOrWhiteSpace(req.RoleName)))
+                return BadRequest("Debes indicar (UserId o Username) y (RoleId o RoleName).");
 
-        [HttpPost("login-legacy")]
-        [AllowAnonymous]
-        public Task<IActionResult> LoginLegacy(
-            [FromQuery] string username,
-            [FromQuery] string password)
-        {
-            var dto = new LoginRequest { Username = username, Password = password };
-            return Login(dto);
+            // Usuario
+            var user = req.UserId.HasValue
+                ? await _db.Users.FirstOrDefaultAsync(u => u.Id == req.UserId.Value, ct)
+                : await _db.Users.FirstOrDefaultAsync(u => u.Username == req.Username!, ct);
+
+            if (user is null) return NotFound("Usuario no encontrado.");
+
+            // Rol
+            Role? role = null;
+            if (req.RoleId.HasValue)
+                role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == req.RoleId.Value, ct);
+            else if (!string.IsNullOrWhiteSpace(req.RoleName))
+                role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == req.RoleName.Trim(), ct);
+
+            if (role is null) return NotFound("Rol no encontrado.");
+
+            var oldRoleId = user.RoleId;
+            if (oldRoleId == role.Id)
+                return Ok(new { message = "El usuario ya tenía ese rol", user = user.Username, role = role.Name });
+
+            user.RoleId = role.Id;
+            _db.Users.Update(user);
+            await _db.SaveChangesAsync(ct);
+
+            var oldRoleName = await _db.Roles.Where(r => r.Id == oldRoleId).Select(r => r.Name).FirstOrDefaultAsync(ct);
+
+            return Ok(new
+            {
+                message = "Rol asignado",
+                userId = user.Id,
+                user = user.Username,
+                oldRole = oldRoleName,
+                newRole = role.Name
+            });
         }
     }
 }
