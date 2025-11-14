@@ -5,6 +5,35 @@
     "version": "v1"
   },
   "paths": {
+    "/api/Auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Auth/roles": {
       "get": {
         "tags": [
@@ -99,6 +128,68 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Auth/admin-change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordRequest"
               }
             }
           }
@@ -340,7 +431,7 @@
         }
       }
     },
-    "/api/trd/series": {
+    "/api/TRD/mis-series": {
       "get": {
         "tags": [
           "TRD"
@@ -352,30 +443,7 @@
         }
       }
     },
-    "/api/trd/series/{id}": {
-      "get": {
-        "tags": [
-          "TRD"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/trd/subseries": {
+    "/api/TRD/mis-subseries": {
       "get": {
         "tags": [
           "TRD"
@@ -397,16 +465,23 @@
         }
       }
     },
-    "/api/trd/subseries/{id}": {
+    "/api/TRD/mis-tipos": {
       "get": {
         "tags": [
           "TRD"
         ],
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
+            "name": "subserieId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "serieId",
+            "in": "query",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -419,10 +494,56 @@
           }
         }
       }
+    },
+    "/api/TRD/mis-opciones": {
+      "get": {
+        "tags": [
+          "TRD"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/TRD/mis-tipos-flat": {
+      "get": {
+        "tags": [
+          "TRD"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminChangePasswordRequest": {
+        "required": [
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "AssignRoleRequest": {
         "type": "object",
         "properties": {
@@ -447,6 +568,24 @@
         },
         "additionalProperties": false
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "newPassword": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "LoginRequest": {
         "required": [
           "password",
@@ -465,13 +604,63 @@
         },
         "additionalProperties": false
       },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroDocumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "cargo": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "additionalProperties": false
+      },
       "RegisterRequest": {
         "required": [
+          "cargo",
+          "nombre",
+          "numeroDocumento",
           "password",
+          "roleId",
           "username"
         ],
         "type": "object",
         "properties": {
+          "nombre": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "numeroDocumento": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "cargo": {
+            "minLength": 1,
+            "type": "string"
+          },
           "username": {
             "minLength": 1,
             "type": "string"
@@ -480,14 +669,9 @@
             "minLength": 6,
             "type": "string"
           },
-          "roleName": {
-            "type": "string",
-            "nullable": true
-          },
           "roleId": {
             "type": "integer",
-            "format": "int64",
-            "nullable": true
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -496,7 +680,7 @@
     "securitySchemes": {
       "Bearer": {
         "type": "http",
-        "description": "JWT Bearer. Ej: 'Bearer {token}'",
+        "description": "JWT Bearer. Ej: Bearer {token}",
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }

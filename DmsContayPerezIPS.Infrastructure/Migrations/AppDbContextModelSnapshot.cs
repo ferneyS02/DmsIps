@@ -1118,11 +1118,29 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("Cargo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NumeroDocumento")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PasswordChangedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1148,7 +1166,7 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
             modelBuilder.Entity("DmsContayPerezIPS.Domain.Entities.AuditLog", b =>
                 {
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.User", "User")
-                        .WithMany("AuditLogs")
+                        .WithMany()
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
@@ -1157,7 +1175,7 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
             modelBuilder.Entity("DmsContayPerezIPS.Domain.Entities.Document", b =>
                 {
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.User", "Creator")
-                        .WithMany("Documents")
+                        .WithMany()
                         .HasForeignKey("CreatorId");
 
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.Folder", "Folder")
@@ -1186,7 +1204,7 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.User", "Uploader")
-                        .WithMany("DocumentVersions")
+                        .WithMany()
                         .HasForeignKey("UploaderId");
 
                     b.Navigation("Document");
@@ -1197,7 +1215,7 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
             modelBuilder.Entity("DmsContayPerezIPS.Domain.Entities.Folder", b =>
                 {
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.User", "Creator")
-                        .WithMany("Folders")
+                        .WithMany()
                         .HasForeignKey("CreatorId");
 
                     b.HasOne("DmsContayPerezIPS.Domain.Entities.Folder", "Parent")
@@ -1272,17 +1290,6 @@ namespace DmsContayPerezIPS.Infrastructure.Migrations
             modelBuilder.Entity("DmsContayPerezIPS.Domain.Entities.TipoDocumental", b =>
                 {
                     b.Navigation("Documents");
-                });
-
-            modelBuilder.Entity("DmsContayPerezIPS.Domain.Entities.User", b =>
-                {
-                    b.Navigation("AuditLogs");
-
-                    b.Navigation("DocumentVersions");
-
-                    b.Navigation("Documents");
-
-                    b.Navigation("Folders");
                 });
 #pragma warning restore 612, 618
         }

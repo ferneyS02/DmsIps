@@ -1,28 +1,31 @@
-﻿namespace DmsContayPerezIPS.Domain.Entities
+﻿using System;
+
+namespace DmsContayPerezIPS.Domain.Entities
 {
     public class User
     {
         public long Id { get; set; }
 
-        // 🔹 Datos principales
-        public string Username { get; set; } = null!;
-        public string PasswordHash { get; set; } = null!;
+        // Login
+        public string Username { get; set; } = default!;
+        public string PasswordHash { get; set; } = default!;
 
-        // 🔹 Relación con Role
+        // Perfil
+        public string NumeroDocumento { get; set; } = default!; // 👈 NUEVO
+        public string Nombre { get; set; } = default!;          // 👈 NUEVO
+        public string Cargo { get; set; } = default!;           // 👈 NUEVO
+
+        // Rol
         public long RoleId { get; set; }
         public Role? Role { get; set; }
 
-        // 🔹 Estado y auditoría
-        public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; }   // ⚡ sin valor dinámico
-        public DateTime? UpdatedAt { get; set; }
+        // Seguridad (cambio obligatorio)
+        public bool MustChangePassword { get; set; } = true;
+        public DateTime? PasswordChangedAt { get; set; }
 
-        // =========================
-        // 🔹 Relaciones inversas
-        // =========================
-        public ICollection<AuditLog>? AuditLogs { get; set; }
-        public ICollection<Document>? Documents { get; set; }
-        public ICollection<Folder>? Folders { get; set; }
-        public ICollection<DocumentVersion>? DocumentVersions { get; set; }
+        // Estado y trazas
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

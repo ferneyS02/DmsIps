@@ -13,7 +13,7 @@ using Minio.DataModel.Args;
 
 namespace DmsContayPerezIPS.API.Controllers
 {
-    [Authorize] // requiere JWT
+    [Authorize(Policy = "PwdFresh")] // 👈 requiere contraseña “fresca”
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentosController : ControllerBase
@@ -31,12 +31,7 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // GET: /api/Documentos
-        // Lista/búsqueda con filtros + control por serie
-        // Soporta búsqueda por fecha en:
-        //   - parámetros fromDoc/toDoc
-        //   - detección dentro de 'q' (2025-11-12, 11/2025, "noviembre 2025", etc.)
-        // Incluye quién subió el documento (UploadedById/UploadedByName)
-        // (NO expone folderId ni metadataJson)
+        // Lista / búsqueda con filtros y control por serie según rol
         // ==========================================================
         [HttpGet]
         public async Task<IActionResult> Get(
@@ -109,12 +104,13 @@ namespace DmsContayPerezIPS.API.Controllers
                     SerieId = d.TipoDocumental!.Subserie!.SerieId,
                     Serie = d.TipoDocumental!.Subserie!.Serie!.Nombre,
                     d.CurrentVersion,
-                    // d.MetadataJson  // 👈 INTENCIONALMENTE NO SE EXPONE
-                    d.ExtractedText,  // si prefieres ocultarlo también, coméntalo
+                    // d.MetadataJson  // 👈 NO se expone
+                    // d.FolderId     // 👈 NO se expone
+                    d.ExtractedText,  // si no quieres exponerlo, comenta esta línea
+                    d.DocumentDate,
                     d.CreatedAt,
                     d.UpdatedAt,
-
-                    // 👇 Quién subió el documento (usa CreatedBy)
+                    // Quién subió (CreatedBy)
                     UploadedById = d.CreatedBy,
                     UploadedByName = _db.Users
                         .Where(u => u.Id == d.CreatedBy)
@@ -128,8 +124,7 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // GET: /api/Documentos/{id}
-        // Detalle con control por serie (incluye quién subió)
-        // (NO expone metadataJson ni folderId)
+        // Detalle con control por serie
         // ==========================================================
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
@@ -165,14 +160,13 @@ namespace DmsContayPerezIPS.API.Controllers
                 Serie = d.TipoDocumental?.Subserie?.Serie?.Nombre,
                 d.CurrentVersion,
                 // d.MetadataJson, // 👈 oculto
+                // d.FolderId,     // 👈 oculto
                 d.ExtractedText,   // si prefieres ocultarlo, coméntalo
                 d.GestionUntil,
                 d.CentralUntil,
                 d.DocumentDate,
                 d.CreatedAt,
                 d.UpdatedAt,
-
-                // 👇 Quién subió
                 UploadedById = d.CreatedBy,
                 UploadedByName = _db.Users
                     .Where(u => u.Id == d.CreatedBy)
@@ -183,16 +177,14 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // POST: /api/Documentos/upload
-        // Upload a MinIO (Swagger-friendly): un solo DTO [FromForm]
-        // NO acepta folderId ni metadataJson
-        // Guarda CreatedBy a partir del claim NameIdentifier del token
+        // Upload a MinIO (Swagger-friendly)
         // ==========================================================
         public class UploadForm
         {
             [FromForm] public IFormFile File { get; set; } = null!;
             [FromForm] public long TipoDocId { get; set; }
-            [FromForm] public DateTime? DocumentDate { get; set; }
-            // 👇 Eliminados:
+            [FromForm] public DateTime? DocumentDate { get; set; } // 👈 Fecha del documento
+            // Eliminados de inputs:
             // [FromForm] public long? FolderId { get; set; }
             // [FromForm] public string? MetadataJson { get; set; }
         }
@@ -234,7 +226,7 @@ namespace DmsContayPerezIPS.API.Controllers
             }
 
             var nowUtc = DateTime.UtcNow;
-            var userId = GetUserIdOrNull(User); // del JWT; no se acepta "uploader" por el cliente
+            var userId = GetUserIdOrNull(User); // del JWT
 
             var doc = new Document
             {
@@ -252,9 +244,9 @@ namespace DmsContayPerezIPS.API.Controllers
                 CreatedAt = nowUtc,
                 UpdatedBy = userId,
                 UpdatedAt = nowUtc,
-                DocumentDate = form.DocumentDate,
-                // Solo nombre del archivo (sin metadataJson)
-                SearchText = form.File.FileName
+                DocumentDate = form.DocumentDate?.Date,
+                // Incluimos la fecha normalizada dentro del texto indexado
+                SearchText = $"{form.File.FileName} {(form.DocumentDate.HasValue ? form.DocumentDate.Value.ToString("yyyy-MM-dd") : "")}"
             };
 
             _db.Documents.Add(doc);
@@ -276,7 +268,6 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // GET: /api/Documentos/{id}/download
-        // Descarga por API (para archivos pequeños/medianos)
         // ==========================================================
         [HttpGet("{id:long}/download")]
         public async Task<IActionResult> Download(long id, CancellationToken ct)
@@ -321,7 +312,6 @@ namespace DmsContayPerezIPS.API.Controllers
 
         // ==========================================================
         // GET: /api/Documentos/{id}/url?expiresSeconds=600
-        // URL prefirmada (recomendada para archivos grandes)
         // ==========================================================
         [HttpGet("{id:long}/url")]
         public async Task<IActionResult> GetPresignedUrl(long id, [FromQuery] int expiresSeconds = 600, CancellationToken ct = default)
@@ -361,7 +351,7 @@ namespace DmsContayPerezIPS.API.Controllers
         }
 
         // ==========================================================
-        // Helpers locales (autorización y utilidades)
+        // Helpers
         // ==========================================================
         private static bool IsAdmin(ClaimsPrincipal user) => user.IsInRole("Admin");
 
@@ -374,12 +364,12 @@ namespace DmsContayPerezIPS.API.Controllers
             // Map de rol -> SerieId (según tu TRD/seed)
             return role switch
             {
-                "GestClinica" => new long[] { 1 },
-                "GestiAdmin" => new long[] { 2 },
-                "GestFinYCon" => new long[] { 3 },
-                "GestJurid" => new long[] { 4 },
-                "GestCalidad" => new long[] { 5 },
-                "SGSST" => new long[] { 6 },
+                "GestClinica"    => new long[] { 1 },
+                "GestiAdmin"     => new long[] { 2 },
+                "GestFinYCon"    => new long[] { 3 },
+                "GestJurid"      => new long[] { 4 },
+                "GestCalidad"    => new long[] { 5 },
+                "SGSST"          => new long[] { 6 },
                 "AdminEquBiomed" => new long[] { 7 },
                 _ => Array.Empty<long>()
             };
@@ -387,8 +377,6 @@ namespace DmsContayPerezIPS.API.Controllers
 
         private static long? GetUserIdOrNull(ClaimsPrincipal user)
         {
-            // 👇 Asegúrate de incluir este claim en tu AuthController.Login:
-            // new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             var id = user.FindFirstValue(ClaimTypes.NameIdentifier);
             return long.TryParse(id, out var parsed) ? parsed : null;
         }
@@ -414,7 +402,7 @@ namespace DmsContayPerezIPS.API.Controllers
             }
         }
 
-        // Detecta fechas en 'q' (día exacto o mes/año)
+        // Detecta fechas en 'q' (día exacto o mes/año o “noviembre 2025”)
         private static bool TryParseDateFromQuery(string q, out DateTime start, out DateTime end)
         {
             q = (q ?? "").Trim().ToLowerInvariant();
@@ -448,7 +436,7 @@ namespace DmsContayPerezIPS.API.Controllers
                 var name = mregex.Groups[1].Value;
                 var year = int.Parse(mregex.Groups[2].Value);
 
-                string[] meses = { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
+                string[] meses = { "enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre" };
                 int month = Array.IndexOf(meses, name) + 1;
                 if (month <= 0 && name == "setiembre") month = 9;
 

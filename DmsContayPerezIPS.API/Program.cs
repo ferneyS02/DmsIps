@@ -1,178 +1,259 @@
-﻿using DmsContayPerezIPS.API.Services;               // ITextExtractor / PdfDocxTextExtractor
+﻿using System.Text;
+using BCrypt.Net;
 using DmsContayPerezIPS.Infrastructure.Persistence;
-using DmsContayPerezIPS.Infrastructure.Seed;        // 👈 SeederService
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;                    // Para IFormFile en Swagger MapType
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Minio;
 using Minio.DataModel.Args;
-using System.IdentityModel.Tokens.Jwt;              // 👈 RoleClaimType
-using System.Security.Claims;                       // 👈 RoleClaimType
-using System.Text;
-
-// ====== Opcional: cargar variables desde .env si existe ======
-try { DotNetEnv.Env.Load(); } catch { /* ignore */ }
-
-// ====== Opcional: compatibilidad Npgsql para DateTime ======
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== PostgreSQL =====
+// =========================================
+// PostgreSQL
+// =========================================
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    var cs = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseNpgsql(cs);
-});
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ===== Servicios de aplicación (ej. extractor de texto) =====
-builder.Services.AddSingleton<ITextExtractor, PdfDocxTextExtractor>();
-
-// ===== MinIO =====
+// =========================================
+/* MinIO - usa IMinioClient */
+// =========================================
 builder.Services.AddSingleton<IMinioClient>(sp =>
 {
-    var endpoint = builder.Configuration["MinIO:Endpoint"] ?? "localhost:9000";
-    var accessKey = builder.Configuration["MinIO:AccessKey"] ?? "admin";
-    var secretKey = builder.Configuration["MinIO:SecretKey"] ?? "admin123";
+    var cfg = builder.Configuration;
+    var endpoint = cfg["MinIO:Endpoint"] ?? "localhost:9000";
+    var accessKey = cfg["MinIO:AccessKey"] ?? "admin";
+    var secretKey = cfg["MinIO:SecretKey"] ?? "admin123";
+    var useSSL = bool.TryParse(cfg["MinIO:UseSSL"], out var ssl) && ssl;
 
-    return new MinioClient()
+    var client = new MinioClient()
         .WithEndpoint(endpoint)
-        .WithCredentials(accessKey, secretKey)
-        // .WithSSL() // habilítalo si usas https en MinIO
-        .Build();
+        .WithCredentials(accessKey, secretKey);
+
+    if (useSSL) client = client.WithSSL();
+
+    return client.Build();
 });
 
-// ===== Controllers =====
-builder.Services.AddControllers();
+// =========================================
+// Controllers + JSON
+// =========================================
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        // Mantén camelCase (por defecto). Agrega aquí si necesitas algo especial.
+        // o.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
-// ===== Swagger =====
+// =========================================
+// CORS (ajusta orígenes del front Angular)
+// =========================================
+builder.Services.AddCors(options =>
+{
+    var origins = (builder.Configuration["Cors:Origins"] ?? "http://localhost:4200")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    options.AddPolicy("frontend", policy =>
+    {
+        policy.WithOrigins(origins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// =========================================
+// Límites para multipart/form-data (uploads grandes)
+// =========================================
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = 1L * 1024 * 1024 * 1024; // 1 GB
+    o.ValueCountLimit = int.MaxValue;
+    o.ValueLengthLimit = int.MaxValue;
+    o.MemoryBufferThreshold = int.MaxValue;
+});
+
+// =========================================
+// JWT Auth
+// =========================================
+var jwtKey = builder.Configuration["JWT:Key"]
+            ?? "EstaEsUnaClaveJWTDeAlMenos32CaracteresSuperSegura!!123";
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false; // ponlo en true en prod con HTTPS
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JWT:Issuer"],
+            ValidAudience = builder.Configuration["JWT:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+
+            // 👇 Muy importante para que [Authorize(Roles="...")] y User.Identity.Name funcionen
+            NameClaimType = System.Security.Claims.ClaimTypes.Name,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+        };
+    });
+
+// =========================================
+// Authorization (política para forzar cambio de contraseña)
+// =========================================
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PwdFresh", policy =>
+        policy.RequireClaim("pwd_fresh", "true"));
+});
+
+// =========================================
+// Swagger
+// =========================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    // Soporte para IFormFile
-    c.MapType<IFormFile>(() => new OpenApiSchema
-    {
-        Type = "string",
-        Format = "binary"
-    });
-
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "DmsContayPerezIPS API",
         Version = "v1"
     });
 
-    // Autenticación Bearer en Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // Bearer Auth
+    var securityScheme = new OpenApiSecurityScheme
     {
-        Description = "JWT Bearer. Ej: 'Bearer {token}'",
         Name = "Authorization",
+        Description = "JWT Bearer. Ej: Bearer {token}",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
-        BearerFormat = "JWT"
-    });
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = "Bearer"
+        }
+    };
 
+    c.AddSecurityDefinition("Bearer", securityScheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme {
-                Reference = new OpenApiReference {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        { securityScheme, Array.Empty<string>() }
     });
 });
 
-// ===== JWT Authentication =====
-var jwtKey = builder.Configuration["JWT:Key"]
-             ?? "EstaEsUnaClaveJWTDeAlMenos32CaracteresSuperSegura!!123";
-
-// 👇 Evitar remapeo de claims para que ClaimTypes.Role llegue intacto
-JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JWT:Issuer"],
-            ValidAudience = builder.Configuration["JWT:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
-            // 👇 Claves para que [Authorize(Roles="...")] funcione
-            RoleClaimType = ClaimTypes.Role,
-            NameClaimType = ClaimTypes.Name
-        };
-    });
-
-// ===== Authorization (políticas por serie; Admin entra en todas) =====
-builder.Services.AddAuthorization(options =>
+// =========================================
+// Kestrel (opcional: subir límite general del body)
+// =========================================
+builder.WebHost.ConfigureKestrel(options =>
 {
-    options.AddPolicy("Serie_GestClinica", p => p.RequireRole("Admin", "GestClinica"));
-    options.AddPolicy("Serie_GestiAdmin", p => p.RequireRole("Admin", "GestiAdmin"));
-    options.AddPolicy("Serie_GestFinYCon", p => p.RequireRole("Admin", "GestFinYCon"));
-    options.AddPolicy("Serie_GestJurid", p => p.RequireRole("Admin", "GestJurid"));
-    options.AddPolicy("Serie_GestCalidad", p => p.RequireRole("Admin", "GestCalidad"));
-    options.AddPolicy("Serie_SGSST", p => p.RequireRole("Admin", "SGSST"));
-    options.AddPolicy("Serie_AdminEquBiomed", p => p.RequireRole("Admin", "AdminEquBiomed"));
+    options.Limits.MaxRequestBodySize = 1L * 1024 * 1024 * 1024; // 1 GB
 });
 
 var app = builder.Build();
 
-// ===== Crear bucket, ejecutar migraciones y seeding =====
-using (var scope = app.Services.CreateScope())
-{
-    var minio = scope.ServiceProvider.GetRequiredService<IMinioClient>();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var bucket = builder.Configuration["MinIO:Bucket"] ?? "dms";
-
-    try
-    {
-        // 1) Asegurar bucket (si falla no bloquea el arranque)
-        bool exists = await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(bucket));
-        if (!exists)
-            await minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket));
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[MinIO] Warn: {ex.Message}");
-    }
-
-    try
-    {
-        // 2) Migraciones
-        await db.Database.MigrateAsync();
-
-        // 3) Seeder real de tu repo (👈 este es el correcto)
-        await SeederService.SeedAsync(db, minio, bucket);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[EF/Seed] Warn: {ex.Message}");
-    }
-}
-
-// ===== Middlewares =====
+// =========================================
+// Dev tools
+// =========================================
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    // En prod también puedes habilitar Swagger si deseas:
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// =========================================
+// CORS / Auth
+// =========================================
+app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// =========================================
+// Inicialización: migraciones + bucket + admin opcional
+// =========================================
+using (var scope = app.Services.CreateScope())
+{
+    var sp = scope.ServiceProvider;
+
+    // ---- Aplicar migraciones (si procede) ----
+    try
+    {
+        var db = sp.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception)
+    {
+        // Si no quieres auto-migrar, comenta el bloque de migrate.
+        // Loguea si deseas.
+    }
+
+    // ---- Asegurar bucket MinIO ----
+    try
+    {
+        var cfg = builder.Configuration;
+        var minio = sp.GetRequiredService<IMinioClient>();
+        var bucket = cfg["MinIO:Bucket"] ?? "dms";
+
+        bool exists = await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(bucket));
+        if (!exists)
+            await minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket));
+    }
+    catch (Exception)
+    {
+        // Loguea si deseas.
+    }
+
+    // ---- Seed opcional de ADMIN desde appsettings ----
+    // Coloca en appsettings.Development.json (o variables de entorno):
+    // "Admin:Username": "admin",
+    // "Admin:Password": "Admin123*"
+    try
+    {
+        var cfg = builder.Configuration;
+        var adminUser = cfg["Admin:Username"];
+        var adminPass = cfg["Admin:Password"];
+        if (!string.IsNullOrWhiteSpace(adminUser) && !string.IsNullOrWhiteSpace(adminPass))
+        {
+            var db = sp.GetRequiredService<AppDbContext>();
+            var adminRoleId = await db.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            if (adminRoleId != 0 && !await db.Users.AnyAsync(u => u.Username == adminUser))
+            {
+                db.Users.Add(new DmsContayPerezIPS.Domain.Entities.User
+                {
+                    Username = adminUser,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPass),
+                    RoleId = adminRoleId,
+                    MustChangePassword = true,    // obliga a cambiarla al primer login
+                    PasswordChangedAt = null,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+    catch (Exception)
+    {
+        // Loguea si deseas.
+    }
+}
 
 app.Run();
